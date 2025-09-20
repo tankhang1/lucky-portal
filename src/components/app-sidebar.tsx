@@ -1,21 +1,5 @@
 import * as React from "react";
-import {
-  IconAd2,
-  IconCamera,
-  IconChartBar,
-  IconDashboard,
-  IconDatabase,
-  IconFileAi,
-  IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconHelp,
-  IconListDetails,
-  IconReport,
-  IconSearch,
-  IconSettings,
-  IconUsers,
-} from "@tabler/icons-react";
+import { IconAd2, IconHistory } from "@tabler/icons-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -38,8 +22,13 @@ const data = {
   navMain: [
     {
       title: "Chương trình",
-      url: "#",
+      url: "/main/program",
       icon: IconAd2,
+    },
+    {
+      title: "Lịch sử",
+      url: "/main/history",
+      icon: IconHistory,
     },
   ],
 };
