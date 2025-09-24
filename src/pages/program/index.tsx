@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -43,6 +44,10 @@ import {
   Save,
   Pencil,
   MoreHorizontal,
+  CheckCircle2,
+  Info,
+  ArrowUpDown,
+  Filter,
 } from "lucide-react";
 import {
   Dialog,
@@ -67,6 +72,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { IconDotsVertical } from "@tabler/icons-react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const fileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -115,16 +122,18 @@ const programSchema = z.object({
   programName: z.string().min(1, "Nhập tên chương trình"),
   image: z.string().optional().default(""),
   enabled: z.boolean().default(true),
+  summary: z.string().optional().default(""),
+  rules: z.array(z.string()).default([]),
   prizes: z.array(prizeSchema).default([]),
   normalPrizes: z.array(normalPrizeSchema).default([]),
-  ranges: z.array(rangeSchema).default([]), // giữ để tương thích (không dùng UI)
+  ranges: z.array(rangeSchema).default([]),
   specialNumbers: z
     .array(
       z.object({
         value: z.number().int().nonnegative(),
         prize: z.string().min(1).optional(),
-        number: z.number().int().nonnegative().optional(), // giữ để tương thích (không dùng UI)
-        draws: z.number().int().nonnegative().optional(), // giữ để tương thích (không dùng UI)
+        number: z.number().int().nonnegative().optional(),
+        draws: z.number().int().nonnegative().optional(),
         prizeId: z.string().optional(),
       })
     )
@@ -147,10 +156,8 @@ const parseCustomersCsv = async (file: File): Promise<CustomerRow[]> => {
   const text = await file.text();
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return [];
-
   const split = (s: string) => s.split(/,|;|\t/).map((x) => x.trim());
   const headerRaw = split(lines[0]).map((h) => h.toLowerCase());
-
   const nameKeys = [
     "name",
     "customer_name",
@@ -174,23 +181,18 @@ const parseCustomersCsv = async (file: File): Promise<CustomerRow[]> => {
     "số lượt quay",
     "luot_quay",
   ];
-
   const nameIdx = headerRaw.findIndex((h) => nameKeys.includes(h));
   const phoneIdx = headerRaw.findIndex((h) => phoneKeys.includes(h));
   const attemptsIdx = headerRaw.findIndex((h) => attemptsKeys.includes(h));
-
   const looksLikeHeader = phoneIdx >= 0 || attemptsIdx >= 0 || nameIdx >= 0;
 
   const rows: CustomerRow[] = [];
   let idx = 1;
-
   for (let i = looksLikeHeader ? 1 : 0; i < lines.length; i++) {
     const cols = split(lines[i]);
-
     let name = "";
     let phone = "";
     let attempts = 0;
-
     if (looksLikeHeader) {
       name = nameIdx >= 0 ? cols[nameIdx] || "" : "";
       phone = phoneIdx >= 0 ? cols[phoneIdx] || "" : cols[0] || "";
@@ -210,10 +212,8 @@ const parseCustomersCsv = async (file: File): Promise<CustomerRow[]> => {
         attempts = 0;
       }
     }
-
     const normPhone = (phone || "").replace(/[^\d+]/g, "");
     if (!normPhone) continue;
-
     rows.push({
       index: idx++,
       name: name?.trim() ? name.trim() : undefined,
@@ -221,7 +221,6 @@ const parseCustomersCsv = async (file: File): Promise<CustomerRow[]> => {
       attempts: Number.isFinite(attempts) ? attempts : 0,
     });
   }
-
   return rows;
 };
 
@@ -231,20 +230,27 @@ const defaultPrograms = (): Program[] => [
     programName: "Tết 2025 – Lì xì vui vẻ",
     image: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
     enabled: true,
+    summary:
+      "Chương trình tri ân khách hàng dịp Tết 2025. Tham gia quay số nhận e-voucher và quà Tết hấp dẫn.",
+    rules: [
+      "Mỗi số điện thoại được tham gia theo số lượt quay được cấp.",
+      "Giải thưởng không quy đổi thành tiền mặt.",
+      "BTC có quyền điều chỉnh thể lệ khi cần thiết.",
+    ],
     prizes: [
       {
         id: "p-evoucher",
-        name: "E-voucher",
+        name: "E-voucher 50K",
         image: "",
         stock: 1000,
-        note: "Mỗi mã trị giá 50,000đ",
+        note: "Mã trị giá 50.000đ",
       },
       {
         id: "p-combo-tet",
         name: "Combo Tết",
         image: "",
         stock: 200,
-        note: "Combo bao gồm nhiều sản phẩm",
+        note: "Gồm nhiều sản phẩm",
       },
       {
         id: "p-jackpot",
@@ -281,21 +287,21 @@ const defaultPrograms = (): Program[] => [
     programName: "Sinh nhật 10 năm",
     image: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
     enabled: false,
+    summary:
+      "Kỷ niệm 10 năm, tham gia quay số để nhận bộ quà đặc biệt dành riêng cho sự kiện.",
+    rules: [
+      "Áp dụng cho khách hàng mời tham dự sự kiện.",
+      "Thông tin người trúng thưởng phải trùng khớp khi nhận quà.",
+    ],
     prizes: [
       {
         id: "p-birthday-kit",
         name: "Bộ quà sinh nhật",
         image: "",
         stock: 300,
-        note: "Bộ quà sinh nhật đặc biệt",
+        note: "",
       },
-      {
-        id: "p-10yrs",
-        name: "Bộ quà 10 năm",
-        image: "",
-        stock: 100,
-        note: "Bộ quà kỷ niệm 10 năm",
-      },
+      { id: "p-10yrs", name: "Bộ quà 10 năm", image: "", stock: 100, note: "" },
     ],
     normalPrizes: [
       {
@@ -329,7 +335,6 @@ const validateProgram = (p: Program): Issue[] => {
     parsed.error.issues.forEach((e) =>
       issues.push({ level: "error", message: e.message })
     );
-
   const specialSet = new Set<number>();
   p.specialNumbers.forEach((s) => {
     if (specialSet.has(s.value))
@@ -351,7 +356,6 @@ const validateProgram = (p: Program): Issue[] => {
         message: `Số đặc biệt ${s.value} thiếu prize hoặc prizeId`,
       });
   });
-
   p.normalPrizes.forEach((np, idx) => {
     if (!p.prizes.some((pr) => pr.id === np.prizeId))
       issues.push({
@@ -364,7 +368,6 @@ const validateProgram = (p: Program): Issue[] => {
         message: `Giải chung #${idx + 1}: min phải <= max`,
       });
   });
-
   return issues;
 };
 
@@ -445,25 +448,21 @@ export default function ProgramPage() {
     programIssues: Record<string, Issue[]>;
     customerIssues: Issue[];
   } | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerRow[]>(defaultCustomers);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newAttempts, setNewAttempts] = useState<string>("");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const excelRef = useRef<HTMLInputElement | null>(null);
-
   const [showPreview, setShowPreview] = useState(false);
-
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "enabled" | "disabled"
+  >("all");
+  const [sortBy, setSortBy] = useState<"name" | "prizes">("name");
   const activeProgram = useMemo(
     () => programs.find((p) => p.id === activeId)!,
     [programs, activeId]
-  );
-  const filteredPrograms = useMemo(
-    () =>
-      programs.filter((p) =>
-        p.programName.toLowerCase().includes(search.toLowerCase())
-      ),
-    [programs, search]
   );
 
   const setActiveProgramPatch = (patch: Partial<Program>) =>
@@ -477,6 +476,8 @@ export default function ProgramPage() {
       programName: `Chương trình #${programs.length + 1}`,
       image: "",
       enabled: true,
+      summary: "",
+      rules: [],
       prizes: [],
       normalPrizes: [],
       ranges: [],
@@ -485,6 +486,27 @@ export default function ProgramPage() {
     setPrograms((x) => [...x, p]);
     setActiveId(p.id);
   };
+  const stats = useMemo(() => {
+    const total = programs.length;
+    const enabled = programs.filter((p) => p.enabled).length;
+    const disabled = total - enabled;
+    return { total, enabled, disabled };
+  }, [programs]);
+
+  const filteredPrograms = useMemo(() => {
+    const q = search.toLowerCase();
+    let list = programs.filter((p) => p.programName.toLowerCase().includes(q));
+    if (statusFilter !== "all") {
+      list = list.filter((p) =>
+        statusFilter === "enabled" ? p.enabled : !p.enabled
+      );
+    }
+    list = list.sort((a, b) => {
+      if (sortBy === "name") return a.programName.localeCompare(b.programName);
+      return (b.prizes?.length || 0) - (a.prizes?.length || 0);
+    });
+    return list;
+  }, [programs, search, statusFilter, sortBy]);
   const duplicateProgram = (id: string) => {
     const src = programs.find((x) => x.id === id);
     if (!src) return;
@@ -570,18 +592,17 @@ export default function ProgramPage() {
     arr.splice(idx, 1);
     setActiveProgramPatch({ specialNumbers: arr });
   };
+
   const handleCsvFiles = async (files: FileList | null) => {
     const f = files?.[0];
     if (!f) return;
     const rows = await parseCustomersCsv(f);
     setCustomers(rows);
   };
-
   const onDropCsv: React.DragEventHandler<HTMLDivElement> = async (e) => {
     e.preventDefault();
     await handleCsvFiles(e.dataTransfer.files);
   };
-
   const addOneCustomer = () => {
     const phone = newPhone.replace(/[^\d+]/g, "");
     const attempts = Number(newAttempts) || 0;
@@ -599,7 +620,6 @@ export default function ProgramPage() {
     setNewPhone("");
     setNewAttempts("");
   };
-
   const canAdd = !!newPhone.replace(/[^\d+]/g, "");
   const runValidate = () => {
     const v = validateAll(programs, customers);
@@ -626,7 +646,6 @@ export default function ProgramPage() {
     const wb = XLSX.read(buf, { type: "array" });
     const toRows = (name: string) =>
       XLSX.utils.sheet_to_json<any>(wb.Sheets[name] || {}, { defval: "" });
-
     const toBool = (v: any) =>
       String(v).trim().toLowerCase() === "true" ||
       v === 1 ||
@@ -649,6 +668,11 @@ export default function ProgramPage() {
           r.programName || r.name || `Chương trình #${i + 1}`
         ),
         enabled: toBool(r.enabled ?? true),
+        summary: String(r.summary || ""),
+        rules: String(r.rules || "")
+          .split(/\r?\n/)
+          .map((s: string) => s.trim())
+          .filter(Boolean),
         prizes: [],
         normalPrizes: [],
         ranges: [],
@@ -715,6 +739,19 @@ export default function ProgramPage() {
       alert("Không có chương trình hợp lệ trong Excel");
   };
 
+  const addRule = () =>
+    setActiveProgramPatch({ rules: [...activeProgram.rules, ""] });
+  const updateRule = (i: number, v: string) => {
+    const rules = [...activeProgram.rules];
+    rules[i] = v;
+    setActiveProgramPatch({ rules });
+  };
+  const removeRule = (i: number) => {
+    const rules = [...activeProgram.rules];
+    rules.splice(i, 1);
+    setActiveProgramPatch({ rules });
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -742,36 +779,6 @@ export default function ProgramPage() {
             Nhập Excel
           </Button>
 
-          <Button variant="outline" className="gap-2" onClick={runValidate}>
-            <ListChecks className="h-4 w-4" />
-            Xác thực
-          </Button>
-
-          <Dialog open={showPreview} onOpenChange={setShowPreview}>
-            <DialogTrigger asChild>
-              <Button variant="secondary" className="gap-2">
-                <Eye className="h-4 w-4" />
-                Xem trước JSON
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>Xem trước JSON</DialogTitle>
-              </DialogHeader>
-              <ScrollArea className="h-[420px] rounded border p-2">
-                <pre className="text-xs whitespace-pre-wrap">
-                  {JSON.stringify({ programs, customers }, null, 2)}
-                </pre>
-              </ScrollArea>
-              <DialogFooter>
-                <Button onClick={exportJson} className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Xuất
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
           <Button onClick={addProgram} className="gap-2">
             <Plus className="h-4 w-4" />
             Tạo chương trình
@@ -783,82 +790,170 @@ export default function ProgramPage() {
         <Card className="lg:col-span-4 xl:col-span-3">
           <CardHeader className="pb-3">
             <CardTitle>Danh sách chương trình</CardTitle>
-            <CardDescription>Chọn, tìm kiếm, nhân bản hoặc xoá</CardDescription>
+            <CardDescription>
+              Chọn, tìm kiếm, lọc, sắp xếp, nhân bản hoặc xoá
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="relative">
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm kiếm chương trình..."
-                className="pl-9"
-              />
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Tìm theo tên…"
+                  className="pl-9"
+                />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem
+                    className={`justify-between ${
+                      statusFilter === "all" ? "font-medium" : ""
+                    }`}
+                    onClick={() => setStatusFilter("all")}
+                  >
+                    Tất cả <Badge variant="secondary">{stats.total}</Badge>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className={`justify-between ${
+                      statusFilter === "enabled" ? "font-medium" : ""
+                    }`}
+                    onClick={() => setStatusFilter("enabled")}
+                  >
+                    Đang bật <Badge>{stats.enabled}</Badge>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className={`justify-between ${
+                      statusFilter === "disabled" ? "font-medium" : ""
+                    }`}
+                    onClick={() => setStatusFilter("disabled")}
+                  >
+                    Đang tắt <Badge variant="outline">{stats.disabled}</Badge>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem
+                    className={sortBy === "name" ? "font-medium" : ""}
+                    onClick={() => setSortBy("name")}
+                  >
+                    Tên (A → Z)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className={sortBy === "prizes" ? "font-medium" : ""}
+                    onClick={() => setSortBy("prizes")}
+                  >
+                    Nhiều giải thưởng
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <ScrollArea className="h-[520px] rounded border">
-              <div className="p-2 space-y-2">
+
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <Badge variant="secondary">Tổng: {stats.total}</Badge>
+              <Badge>Đang bật: {stats.enabled}</Badge>
+              <Badge variant="outline">Đang tắt: {stats.disabled}</Badge>
+            </div>
+
+            <ScrollArea className="h-[520px]">
+              <div className="space-y-2">
                 {filteredPrograms.map((p) => {
                   const active = p.id === activeId;
                   return (
                     <div
                       key={p.id}
-                      className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
+                      className={`rounded-lg border p-3 transition-colors ${
                         active
-                          ? "shadow-sm border-primary/30"
+                          ? "shadow-sm border-primary/30 bg-background"
                           : "hover:bg-muted/30"
                       }`}
                     >
-                      <div
-                        onClick={() => setActiveId(p.id)}
-                        className="text-left cursor-pointer flex-1 py-2 space-y-2 px-1"
-                      >
-                        <div className="font-medium line-clamp-1">
-                          {p.programName}
+                      <div className="flex flex-col items-start gap-3">
+                        <div className="flex items-start justify-between gap-3 w-full">
+                          <div className="h-12 w-16 overflow-hidden rounded-md ring-1 ring-border bg-muted/30">
+                            {p.image ? (
+                              <img
+                                src={p.image}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-full w-full grid place-content-center text-[10px] text-muted-foreground">
+                                <ImageIcon className="h-3 w-3 mr-1" />
+                                Ảnh
+                              </div>
+                            )}
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <IconDotsVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setActiveId(p.id);
+                                  duplicateProgram(p.id);
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <Copy className="h-4 w-4" />
+                                Sao chép
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setActiveId(p.id)}
+                                className="flex items-center gap-2"
+                              >
+                                <Pencil className="h-4 w-4" />
+                                Chỉnh sửa
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => deleteProgram(p.id)}
+                                className="flex items-center gap-2 text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Xoá
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                          <Badge variant={p.enabled ? "default" : "secondary"}>
-                            {p.enabled ? "Bật" : "Tắt"}
-                          </Badge>
-                          <span>Giải thưởng: {p.prizes.length}</span>
-                          <span>Đặc biệt: {p.specialNumbers.length}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium line-clamp-1">
+                            {p.programName}
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                            <Badge
+                              variant={p.enabled ? "default" : "secondary"}
+                            >
+                              {p.enabled ? "Bật" : "Tắt"}
+                            </Badge>
+                            <span>Giải: {p.prizes.length}</span>
+                            <span>Đặc biệt: {p.specialNumbers.length}</span>
+                          </div>
+                          {p.summary ? (
+                            <div className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                              {p.summary}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <IconDotsVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => duplicateProgram(p.id)}
-                            className="flex items-center gap-2"
-                          >
-                            <Copy className="h-4 w-4" />
-                            Sao chép
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setActiveId(p.id)}
-                            className="flex items-center gap-2"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Chỉnh sửa
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => deleteProgram(p.id)}
-                            className="flex items-center gap-2 text-red-600"
-                          >
-                            <Trash2
-                              className="h-4 w-4"
-                              color="oklch(57.7% 0.245 27.325)"
-                            />
-                            Xoá
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
                   );
                 })}
+
                 {filteredPrograms.length === 0 && (
                   <div className="text-center text-sm text-muted-foreground py-10">
                     Không tìm thấy chương trình
@@ -872,7 +967,6 @@ export default function ProgramPage() {
         <Card className="lg:col-span-8 xl:col-span-9">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-4">
-              {/* Thumbnail chương trình (kéo-thả để đổi ảnh) */}
               <div
                 className="relative group"
                 onDragOver={(e) => e.preventDefault()}
@@ -904,7 +998,6 @@ export default function ProgramPage() {
                   )}
                 </div>
 
-                {/* Overlay action */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -957,8 +1050,6 @@ export default function ProgramPage() {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
-
-                {/* input file ẩn */}
                 <input
                   id="program-image-input"
                   type="file"
@@ -976,7 +1067,6 @@ export default function ProgramPage() {
                 />
               </div>
 
-              {/* Tên chương trình – tối giản, không viền */}
               <Input
                 value={activeProgram.programName}
                 onChange={(e) =>
@@ -986,7 +1076,6 @@ export default function ProgramPage() {
                 placeholder="Tên chương trình"
               />
 
-              {/* Nút bên phải */}
               <div className="ml-auto flex items-center gap-2">
                 <Button
                   size="sm"
@@ -1009,47 +1098,171 @@ export default function ProgramPage() {
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+
+          <CardContent className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Card className="border-dashed">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Info className="h-4 w-4" />
+                    Thông tin chương trình
+                  </CardTitle>
+                  <CardDescription>
+                    Mô tả ngắn và quy tắc tham gia
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Mô tả</div>
+                    <Textarea
+                      value={activeProgram.summary}
+                      onChange={(e) =>
+                        setActiveProgramPatch({ summary: e.target.value })
+                      }
+                      placeholder="Giới thiệu ngắn gọn về chương trình..."
+                      className="min-h-[96px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-medium">Quy tắc</div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        onClick={addRule}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Thêm quy tắc
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {activeProgram.rules.length === 0 && (
+                        <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-xs text-muted-foreground">
+                          Chưa có quy tắc. Nhấn “Thêm quy tắc” để bắt đầu.
+                        </div>
+                      )}
+                      {activeProgram.rules.map((r, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <div className="mt-2">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          </div>
+                          <Textarea
+                            value={r}
+                            onChange={(e) => updateRule(i, e.target.value)}
+                            placeholder={`Nội dung quy tắc #${i + 1}`}
+                            className="min-h-[60px]"
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => removeRule(i)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Xem trước</CardTitle>
+                  <CardDescription>
+                    Bản xem trước cho landing/mini app
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-hidden rounded-2xl border shadow-sm">
+                    <div className="relative w-full aspect-[16/9] bg-muted">
+                      {activeProgram.image ? (
+                        <img
+                          src={activeProgram.image}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full grid place-items-center text-muted-foreground text-xs">
+                          Chưa có ảnh
+                        </div>
+                      )}
+                      <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs bg-white/80 backdrop-blur">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            activeProgram.enabled
+                              ? "bg-emerald-600"
+                              : "bg-neutral-500"
+                          }`}
+                        />
+                        {activeProgram.enabled ? "Đang bật" : "Đang tắt"}
+                      </span>
+                    </div>
+                    <div className="p-4 space-y-2">
+                      <div className="text-base font-semibold">
+                        {activeProgram.programName || "Tên chương trình"}
+                      </div>
+                      <div className="text-sm text-muted-foreground whitespace-pre-line">
+                        {activeProgram.summary ||
+                          "Mô tả chương trình sẽ hiển thị tại đây."}
+                      </div>
+                      {activeProgram.rules.length > 0 && (
+                        <div className="mt-2">
+                          <div className="text-xs font-medium mb-1">
+                            Quy tắc
+                          </div>
+                          <ul className="space-y-1">
+                            {activeProgram.rules.slice(0, 4).map((r, i) => (
+                              <li
+                                key={i}
+                                className="text-xs text-muted-foreground flex gap-2"
+                              >
+                                <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-primary/70" />
+                                <span>{r}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Separator />
+
             <Tabs defaultValue="prizes" className="w-full">
               <TabsList className="flex flex-wrap gap-1 rounded-2xl bg-muted/40 p-1">
                 <TabsTrigger
                   value="prizes"
-                  className="rounded-xl px-3 py-2 transition-colors
-               data-[state=active]:bg-white data-[state=active]:text-foreground
-               data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
+                  className="rounded-xl px-3 py-2 transition-colors data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
                 >
                   Danh mục giải
                 </TabsTrigger>
-
                 <TabsTrigger
                   value="normal"
-                  className="rounded-xl px-3 py-2 transition-colors
-               data-[state=active]:bg-white data-[state=active]:text-foreground
-               data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
+                  className="rounded-xl px-3 py-2 transition-colors data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
                 >
                   Giải chung
                 </TabsTrigger>
-
                 <TabsTrigger
                   value="specials"
-                  className="rounded-xl px-3 py-2 transition-colors
-               data-[state=active]:bg-white data-[state=active]:text-foreground
-               data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
+                  className="rounded-xl px-3 py-2 transition-colors data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
                 >
                   Số đặc biệt
                 </TabsTrigger>
-
                 <TabsTrigger
                   value="customers"
-                  className="rounded-xl px-3 py-2 transition-colors
-               data-[state=active]:bg-white data-[state=active]:text-foreground
-               data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
+                  className="rounded-xl px-3 py-2 transition-colors data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
                 >
                   Khách hàng
                 </TabsTrigger>
               </TabsList>
 
-              {/* PRIZES */}
               <TabsContent value="prizes" className="space-y-4 pt-4">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">Danh mục giải</div>
@@ -1106,7 +1319,6 @@ export default function ProgramPage() {
                                     Trống
                                   </div>
                                 )}
-
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button
@@ -1133,22 +1345,15 @@ export default function ProgramPage() {
                                       Đổi ảnh
                                     </DropdownMenuItem>
                                     {pr.image && (
-                                      <DropdownMenuItem>
-                                        <Dialog>
-                                          <DialogTrigger asChild>
-                                            <div className="flex items-center gap-2">
-                                              <Eye className="h-4 w-4" />
-                                              Xem ảnh
-                                            </div>
-                                          </DialogTrigger>
-                                          <DialogContent className="max-w-2xl">
-                                            <img
-                                              src={pr.image}
-                                              alt=""
-                                              className="w-full h-auto rounded-lg object-contain"
-                                            />
-                                          </DialogContent>
-                                        </Dialog>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          setPreviewImage(pr.image!)
+                                        }
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <Eye className="h-4 w-4" />
+                                          Xem ảnh
+                                        </div>
                                       </DropdownMenuItem>
                                     )}
                                     {pr.image && (
@@ -1168,7 +1373,6 @@ export default function ProgramPage() {
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
-
                               <input
                                 id={`pr-image-${i}`}
                                 type="file"
@@ -1222,7 +1426,6 @@ export default function ProgramPage() {
                 </ScrollArea>
               </TabsContent>
 
-              {/* NORMAL PRIZES (gồm khoảng số) */}
               <TabsContent value="normal" className="space-y-6 pt-4">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">Giải chung</div>
@@ -1351,7 +1554,6 @@ export default function ProgramPage() {
                 </ScrollArea>
               </TabsContent>
 
-              {/* SPECIAL NUMBERS */}
               <TabsContent value="specials" className="space-y-4 pt-4">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">Giải đặc biệt</div>
@@ -1383,88 +1585,84 @@ export default function ProgramPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                      {activeProgram.specialNumbers.map((s, i) => {
-                        return (
-                          <TableRow
-                            key={`${s.value}-${i}`}
-                            className="hover:bg-muted/50 transition-colors [&>td]:px-3 [&>td]:py-2"
-                          >
-                            <TableCell className="text-center">
-                              {i + 1}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Input
-                                className="text-right"
-                                type="number"
-                                value={s.value}
-                                onChange={(e) =>
+                      {activeProgram.specialNumbers.map((s, i) => (
+                        <TableRow
+                          key={`${s.value}-${i}`}
+                          className="hover:bg-muted/50 transition-colors [&>td]:px-3 [&>td]:py-2"
+                        >
+                          <TableCell className="text-center">{i + 1}</TableCell>
+                          <TableCell className="text-right">
+                            <Input
+                              className="text-right"
+                              type="number"
+                              value={s.value}
+                              onChange={(e) =>
+                                updateSpecial(i, {
+                                  value: Number(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Select
+                                value={s.prizeId ?? "none"}
+                                onValueChange={(v) =>
                                   updateSpecial(i, {
-                                    value: Number(e.target.value) || 0,
+                                    prizeId: v === "none" ? undefined : v,
                                   })
                                 }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Select
-                                  value={s.prizeId ?? "none"}
-                                  onValueChange={(v) =>
-                                    updateSpecial(i, {
-                                      prizeId: v === "none" ? undefined : v,
-                                    })
-                                  }
-                                >
-                                  <SelectTrigger className="w-[240px]">
-                                    <SelectValue placeholder="Catalog prize" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectGroup>
-                                      <SelectItem value="none">—</SelectItem>
-                                      {activeProgram.prizes.map((p) => (
-                                        <SelectItem key={p.id} value={p.id}>
-                                          {p.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectGroup>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                className="text-right"
-                                type="number"
-                                value={s.number}
-                                onChange={(e) =>
-                                  updateSpecial(i, {
-                                    number: Number(e.target.value) || 0,
-                                  })
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                className="text-right"
-                                type="number"
-                                value={s.draws}
-                                onChange={(e) =>
-                                  updateSpecial(i, {
-                                    draws: Number(e.target.value) || 0,
-                                  })
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <ActionIcon
-                                label="Delete"
-                                onClick={() => removeSpecial(i)}
                               >
-                                <Trash2 className="h-4 w-4" />
-                              </ActionIcon>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                                <SelectTrigger className="w-[240px]">
+                                  <SelectValue placeholder="Catalog prize" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectGroup>
+                                    <SelectItem value="none">—</SelectItem>
+                                    {activeProgram.prizes.map((p) => (
+                                      <SelectItem key={p.id} value={p.id}>
+                                        {p.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              className="text-right"
+                              type="number"
+                              value={s.number}
+                              onChange={(e) =>
+                                updateSpecial(i, {
+                                  number: Number(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              className="text-right"
+                              type="number"
+                              value={s.draws}
+                              onChange={(e) =>
+                                updateSpecial(i, {
+                                  draws: Number(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <ActionIcon
+                              label="Delete"
+                              onClick={() => removeSpecial(i)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </ActionIcon>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                       {activeProgram.specialNumbers.length === 0 && (
                         <TableEmpty colSpan={6}>
                           Không có số đặc biệt
@@ -1475,7 +1673,6 @@ export default function ProgramPage() {
                 </ScrollArea>
               </TabsContent>
 
-              {/* CUSTOMERS */}
               <TabsContent value="customers" className="space-y-4 pt-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <Card>
@@ -1555,6 +1752,7 @@ export default function ProgramPage() {
                     </CardContent>
                   </Card>
                 </div>
+
                 <div className="rounded-lg border bg-background p-3">
                   <div className="text-xs font-medium mb-2">
                     Định dạng hỗ trợ
@@ -1573,7 +1771,9 @@ export default function ProgramPage() {
                     Phân tách bằng dấu phẩy, chấm phẩy hoặc tab. Mã hóa UTF-8.
                   </div>
                 </div>
+
                 <Separator />
+
                 <ScrollArea className="h-[360px] rounded-md border">
                   <Table className="text-sm">
                     <TableHeader>
@@ -1666,6 +1866,18 @@ export default function ProgramPage() {
             </Tabs>
           </CardContent>
         </Card>
+        <Dialog
+          open={previewImage !== null}
+          onOpenChange={() => setPreviewImage(null)}
+        >
+          <DialogContent>
+            <img
+              src={previewImage!}
+              alt=""
+              className="w-full h-[400px] rounded-lg object-contain"
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
