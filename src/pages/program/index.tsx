@@ -63,12 +63,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { IconDotsVertical, IconTransferVertical } from "@tabler/icons-react";
 import JoditEditor from "jodit-react";
 import Stepper from "@/components/stepper";
@@ -204,7 +198,6 @@ const programSchema = z.object({
 });
 
 type Prize = z.infer<typeof prizeSchema>;
-type NormalPrize = z.infer<typeof normalPrizeSchema>;
 type RangeRule = z.infer<typeof rangeSchema>;
 type Program = z.infer<typeof programSchema>;
 type CustomerRow = {
@@ -213,7 +206,6 @@ type CustomerRow = {
   phone: string;
   attempts: number;
 };
-type Issue = { level: "error" | "warning"; message: string };
 
 const parseCustomersCsv = async (file: File): Promise<CustomerRow[]> => {
   const text = await file.text();
@@ -437,72 +429,6 @@ const defaultCustomers: CustomerRow[] = [
 
 const coveredByRanges = (ranges: RangeRule[], n: number) =>
   ranges.some((r) => n >= r.min && n <= r.max);
-
-const validateProgram = (p: Program): Issue[] => {
-  const issues: Issue[] = [];
-  const parsed = programSchema.safeParse(p);
-  if (!parsed.success)
-    parsed.error.issues.forEach((e) =>
-      issues.push({ level: "error", message: e.message })
-    );
-  const specialSet = new Set<number>();
-  p.specialNumbers.forEach((s) => {
-    if (specialSet.has(s.value))
-      issues.push({ level: "error", message: `Số đặc biệt trùng ${s.value}` });
-    specialSet.add(s.value);
-    if (coveredByRanges(p.ranges, s.value))
-      issues.push({
-        level: "warning",
-        message: `Số đặc biệt ${s.value} nằm trong 1 range`,
-      });
-    if (s.prizeId && !p.prizes.some((pr) => pr.id === s.prizeId))
-      issues.push({
-        level: "error",
-        message: `Số đặc biệt ${s.value} tham chiếu prizeId không tồn tại`,
-      });
-    if (!s.prizeId && !s.prize)
-      issues.push({
-        level: "error",
-        message: `Số đặc biệt ${s.value} thiếu prize hoặc prizeId`,
-      });
-  });
-  p.normalPrizes.forEach((np, idx) => {
-    if (!p.prizes.some((pr) => pr.id === np.prizeId))
-      issues.push({
-        level: "error",
-        message: `Giải thường #${idx + 1} tham chiếu prizeId không tồn tại`,
-      });
-    if (np.min > np.max)
-      issues.push({
-        level: "error",
-        message: `Giải chung #${idx + 1}: min phải <= max`,
-      });
-  });
-  return issues;
-};
-
-const validateAll = (programs: Program[], customers: CustomerRow[]) => {
-  const programIssues: Record<string, Issue[]> = {};
-  programs.forEach((p) => (programIssues[p.id] = validateProgram(p)));
-  const customerIssues: Issue[] = [];
-  customers.forEach((c) => {
-    if (!/^\+?\d{8,15}$/.test(c.phone))
-      customerIssues.push({
-        level: "warning",
-        message: `SĐT không hợp lệ: ${c.phone}`,
-      });
-    if (!Number.isInteger(c.attempts) || c.attempts < 0)
-      customerIssues.push({
-        level: "error",
-        message: `Attempts phải là số nguyên >= 0 cho ${c.phone}`,
-      });
-  });
-  const ok =
-    Object.values(programIssues).every((arr) =>
-      arr.every((i) => i.level !== "error")
-    ) && customerIssues.every((i) => i.level !== "error");
-  return { programIssues, customerIssues, ok };
-};
 
 function TableEmpty({
   colSpan,

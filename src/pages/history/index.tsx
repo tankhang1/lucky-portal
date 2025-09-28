@@ -23,14 +23,13 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   Search,
   Filter,
   Download,
-  Calendar,
   RotateCcw,
   ChevronLeft,
   ChevronRight,
@@ -67,15 +66,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils"; // nếu bạn có helper; nếu không có, thay bằng join(" ")
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
+// ---------------------- Types ----------------------
 type HistoryRow = {
   id: string;
   name?: string;
   phone: string;
-  prize: string;
+  prize: string; // tên giải trúng (nếu chỉ tham gia mà chưa trúng, để "")
   program: string;
-  wonAt: string; // ISO
+  programCode?: string; // Mã CT
+  wonAt?: string; // ISO – có nghĩa là đã trúng
+  drawAt: string; // ISO – thời gian bốc số (tham gia)
+  address?: string;
+  idCard?: string; // CCCD
+  note?: string;
 };
 
 // ---------------------- Demo Data Builder ----------------------
@@ -123,10 +129,11 @@ const VN_LAST = [
   "Huy",
   "Nam",
 ];
+
 const PROGRAMS = [
-  "Tết 2025 – Lì xì vui vẻ",
-  "Sinh nhật 10 năm",
-  "Kỷ niệm khách hàng",
+  { name: "Tết 2025 – Lì xì vui vẻ", code: "TET25" },
+  { name: "Sinh nhật 10 năm", code: "B10Y" },
+  { name: "Kỷ niệm khách hàng", code: "CUST" },
 ];
 const PRIZES = [
   "E-voucher 50k",
@@ -143,44 +150,57 @@ const randomPhone = () =>
   "0" +
   (9 + rand(1)).toString() +
   Array.from({ length: 8 }, () => rand(10)).join("");
-
 const randomDateBetween = (from: Date, to: Date) =>
   new Date(from.getTime() + Math.random() * (to.getTime() - from.getTime()));
 
-function buildDemoRows(count = 150): HistoryRow[] {
+function buildDemoRows(count = 200): HistoryRow[] {
   const now = new Date();
   const first = new Date(now);
   first.setMonth(first.getMonth() - 2);
 
   const rows: HistoryRow[] = [];
   for (let i = 0; i < count; i++) {
-    const program = pick(PROGRAMS);
-    const prize = program.includes("Tết")
-      ? pick(["E-voucher 50k", "Combo Tết", "Jackpot 5,000,000đ"])
-      : program.includes("Sinh nhật")
-      ? pick(["Bộ quà sinh nhật", "Bộ quà 10 năm"])
-      : pick(["E-voucher 50k", "Combo Tết", "Bộ quà 10 năm"]);
+    const pg = pick(PROGRAMS);
+    const prizePool = pg.name.includes("Tết")
+      ? ["E-voucher 50k", "Combo Tết", "Jackpot 5,000,000đ"]
+      : pg.name.includes("Sinh nhật")
+      ? ["Bộ quà sinh nhật", "Bộ quà 10 năm"]
+      : ["E-voucher 50k", "Combo Tết", "Bộ quà 10 năm"];
+    const joinedAt = randomDateBetween(first, now);
+    const isWinner = Math.random() > 0.55; // ~45% chỉ tham gia, chưa trúng
+    const wonAt = isWinner
+      ? new Date(joinedAt.getTime() + rand(5) * 3600_000)
+      : undefined;
     const withName = Math.random() > 0.12;
+
     rows.push({
-      id: String(i + 1),
+      id: crypto.randomUUID(),
       name: withName ? randomName() : "",
       phone: randomPhone(),
-      program,
-      prize,
-      wonAt: randomDateBetween(first, now).toISOString(),
+      program: pg.name,
+      programCode: pg.code,
+      prize: isWinner ? pick(prizePool) : "",
+      drawAt: joinedAt.toISOString(),
+      wonAt: wonAt?.toISOString(),
+      address: Math.random() > 0.7 ? "Q.1, TP.HCM" : "",
+      idCard: Math.random() > 0.75 ? "0790xxxxxx" : "",
+      note: Math.random() > 0.85 ? "Đã gọi xác nhận" : "",
     });
   }
-  // sort newest first initially
-  rows.sort((a, b) => +new Date(b.wonAt) - +new Date(a.wonAt));
+
+  // newest first by drawAt
+  rows.sort((a, b) => +new Date(b.drawAt) - +new Date(a.drawAt));
   return rows;
 }
 
 // ---------------------- Utils ----------------------
-const formatDateTime = (iso: string) =>
-  new Date(iso).toLocaleString("vi-VN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+const formatDateTime = (iso?: string) =>
+  iso
+    ? new Date(iso).toLocaleString("vi-VN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "—";
 
 const toYMD = (isoOrDate: string | Date) => {
   const d = typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate;
@@ -192,21 +212,31 @@ const toYMD = (isoOrDate: string | Date) => {
 
 const exportToCsv = (rows: HistoryRow[]) => {
   const header = [
+    "Chương trình",
+    "Mã",
     "Tên",
     "Số điện thoại",
+    "Địa chỉ",
+    "Căn cước",
     "Giải thưởng",
-    "Chương trình",
-    "Ngày trúng thưởng",
+    "Ghi chú",
+    "Thời gian bốc số",
+    "Thời gian trúng thưởng",
   ];
   const csv = [
     header.join(","),
     ...rows.map((r) =>
       [
+        r.program,
+        r.programCode || "",
         r.name || "",
         r.phone,
-        r.prize,
-        r.program,
-        new Date(r.wonAt).toISOString(),
+        r.address || "",
+        r.idCard || "",
+        r.prize || "",
+        r.note || "",
+        r.drawAt ? new Date(r.drawAt).toISOString() : "",
+        r.wonAt ? new Date(r.wonAt).toISOString() : "",
       ]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(",")
@@ -217,7 +247,7 @@ const exportToCsv = (rows: HistoryRow[]) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `lich-su-trung-thuong-${Date.now()}.csv`;
+  a.download = `lich-su-${Date.now()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 };
@@ -238,12 +268,20 @@ const prizeVariant = (
 };
 
 // ---------------------- Component ----------------------
-type SortKey = "name" | "phone" | "prize" | "program" | "wonAt";
+type SortKey =
+  | "name"
+  | "phone"
+  | "prize"
+  | "program"
+  | "programCode"
+  | "drawAt"
+  | "wonAt";
 type SortDir = "asc" | "desc";
+type TabKey = "participants" | "winners";
 
 const HistoryPage: React.FC = () => {
   // data
-  const [rows, setRows] = useState<HistoryRow[]>(() => buildDemoRows(150));
+  const [rows, setRows] = useState<HistoryRow[]>(() => buildDemoRows(200));
 
   // filters
   const [q, setQ] = useState("");
@@ -253,7 +291,7 @@ const HistoryPage: React.FC = () => {
   const [to, setTo] = useState<string>("");
 
   // sorting
-  const [sortBy, setSortBy] = useState<SortKey>("wonAt");
+  const [sortBy, setSortBy] = useState<SortKey>("drawAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   // paging
@@ -269,64 +307,90 @@ const HistoryPage: React.FC = () => {
   const [fPhone, setFPhone] = useState("");
   const [fProgram, setFProgram] = useState<string>("");
   const [fPrize, setFPrize] = useState<string>("");
-  const [fNote, setFNote] = useState(""); // nếu muốn lưu chú thích (hiện chỉ hiển thị trong dialog detail)
-  const [fDate, setFDate] = useState<string>(() => {
+  const [fNote, setFNote] = useState("");
+  const [fDateDraw, setFDateDraw] = useState<string>(() => {
     const d = new Date();
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); // localize datetime-local
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 16);
   });
+  const [fDateWin, setFDateWin] = useState<string>("");
 
+  // tabs
+  const [tab, setTab] = useState<TabKey>("participants");
+
+  // options
   const programs = useMemo(
     () => Array.from(new Set(rows.map((r) => r.program))),
     [rows]
   );
   const prizes = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.prize))),
+    () => Array.from(new Set(rows.map((r) => r.prize).filter(Boolean))),
     [rows]
   );
 
-  // quick stats
-  const total = rows.length;
-  const uniquePhones = useMemo(
-    () => new Set(rows.map((r) => r.phone)).size,
-    [rows]
-  );
+  // Quick stats
+  const totalParticipations = rows.length; // Tổng lượt tham gia
+  const totalLuckyNumbers = rows.reduce((acc) => acc + 1, 0); // = rows.length (mỗi lượt bốc 1 số)
   const prizeSummary = useMemo(() => {
     const m = new Map<string, number>();
-    rows.forEach((r) => m.set(r.prize, (m.get(r.prize) || 0) + 1));
+    rows.forEach((r) => {
+      if (r.wonAt && r.prize) m.set(r.prize, (m.get(r.prize) || 0) + 1);
+    });
     return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
   }, [rows]);
 
+  const programCodes = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach(
+      (r) => r.program && r.programCode && m.set(r.program, r.programCode)
+    );
+    return m;
+  }, [rows]);
+
+  // Derived lists by tab
+  const baseList = useMemo(() => {
+    return tab === "winners" ? rows.filter((r) => !!r.wonAt) : rows;
+  }, [rows, tab]);
+
+  // Filtering + sorting
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
-    let list = rows.filter((r) => {
+    let list = baseList.filter((r) => {
       const okQ =
         !ql ||
-        [r.name || "", r.phone, r.prize, r.program]
+        [r.name || "", r.phone, r.prize || "", r.program, r.programCode || ""]
           .join(" ")
           .toLowerCase()
           .includes(ql);
       const okProgram = program === "all" || r.program === program;
       const okPrize = prize === "all" || r.prize === prize;
-      const okFrom = !from || toYMD(r.wonAt) >= from;
-      const okTo = !to || toYMD(r.wonAt) <= to;
+      const okFrom =
+        !from || toYMD(tab === "winners" ? r.wonAt || "" : r.drawAt) >= from;
+      const okTo =
+        !to || toYMD(tab === "winners" ? r.wonAt || "" : r.drawAt) <= to;
       return okQ && okProgram && okPrize && okFrom && okTo;
     });
 
     // sort
     list = list.sort((a, b) => {
       const factor = sortDir === "asc" ? 1 : -1;
-      const av = a[sortBy]!;
-      const bv = b[sortBy]!;
-      if (sortBy === "wonAt") {
-        return (new Date(av).getTime() - new Date(bv).getTime()) * factor;
+      const av = a[sortBy] as any;
+      const bv = b[sortBy] as any;
+      if (sortBy === "drawAt" || sortBy === "wonAt") {
+        return (
+          (new Date(av || 0).getTime() - new Date(bv || 0).getTime()) * factor
+        );
       }
-      return String(av).localeCompare(String(bv), "vi") * factor;
+      return String(av ?? "").localeCompare(String(bv ?? ""), "vi") * factor;
     });
 
     return list;
-  }, [rows, q, program, prize, from, to, sortBy, sortDir]);
+  }, [baseList, q, program, prize, from, to, sortBy, sortDir, tab]);
 
+  const [pageCache, setPageCache] = useState<Record<TabKey, number>>({
+    participants: 1,
+    winners: 1,
+  });
   const maxPage = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, maxPage);
   const visible = useMemo(() => {
@@ -335,8 +399,8 @@ const HistoryPage: React.FC = () => {
   }, [filtered, safePage, pageSize]);
 
   useEffect(() => {
-    setPage(1); // reset page khi thay lọc
-  }, [q, program, prize, from, to, pageSize]);
+    setPage(1);
+  }, [q, program, prize, from, to, pageSize, tab]);
 
   const resetFilters = () => {
     setQ("");
@@ -352,7 +416,7 @@ const HistoryPage: React.FC = () => {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortBy(key);
-      setSortDir(key === "wonAt" ? "desc" : "asc");
+      setSortDir(key === "drawAt" || key === "wonAt" ? "desc" : "asc");
     }
   };
 
@@ -393,48 +457,60 @@ const HistoryPage: React.FC = () => {
 
   const addRow = () => {
     const phone = fPhone.replace(/[^\d+]/g, "");
-    const dt = fDate ? new Date(fDate) : new Date();
+    const dtDraw = fDateDraw ? new Date(fDateDraw) : new Date();
+    const dtWin = fDateWin ? new Date(fDateWin) : undefined;
+
     if (!phone) {
       alert("Số điện thoại không hợp lệ");
       return;
     }
-    if (!fProgram || !fPrize) {
-      alert("Chọn chương trình và giải thưởng");
+    if (!fProgram) {
+      alert("Chọn chương trình");
       return;
     }
+
+    const pg = PROGRAMS.find((x) => x.name === fProgram) || { code: "" };
     const row: HistoryRow = {
       id: crypto.randomUUID(),
       name: fName.trim() || "",
       phone,
       program: fProgram,
-      prize: fPrize,
-      wonAt: dt.toISOString(),
+      programCode: pg.code || "",
+      prize: fPrize || "",
+      drawAt: dtDraw.toISOString(),
+      wonAt: dtWin ? dtWin.toISOString() : undefined,
+      note: fNote || "",
     };
     setRows((prev) => [row, ...prev]);
     setOpenAdd(false);
-    // reset nhẹ
     setFName("");
     setFPhone("");
     setFNote("");
+    setFPrize("");
+    setFDateWin("");
   };
 
-  const newestWithin24h = (iso: string) => {
-    const diff = Date.now() - new Date(iso).getTime();
-    return diff < 24 * 60 * 60 * 1000;
+  const newestWithin24h = (iso?: string) =>
+    iso ? Date.now() - new Date(iso).getTime() < 24 * 3600_000 : false;
+
+  // grid click => set filter prize
+  const onPickPrize = (name: string) => {
+    setPrize(name || "all");
+    setTab("winners");
   };
 
   return (
     <div className="p-6 space-y-6">
-      <Card className="overflow-hidden">
+      <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <CardTitle className="flex items-center gap-2">
-                Lịch sử trúng thưởng
+                Lịch sử bốc số & trúng thưởng
               </CardTitle>
               <CardDescription>
-                Tìm kiếm, lọc, thêm thủ công và xuất CSV danh sách người trúng
-                thưởng.
+                Tìm kiếm, lọc, thêm thủ công, xuất CSV. Chuyển tab để xem{" "}
+                <b>tham gia</b> hoặc <b>trúng thưởng</b>.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -443,8 +519,7 @@ const HistoryPage: React.FC = () => {
                 className="gap-2"
                 onClick={() => exportToCsv(filtered)}
               >
-                <Download className="h-4 w-4" />
-                Xuất CSV
+                <Download className="h-4 w-4" /> Xuất CSV
               </Button>
               <Button
                 variant={hidePhone ? "default" : "outline"}
@@ -463,15 +538,14 @@ const HistoryPage: React.FC = () => {
               <Dialog open={openAdd} onOpenChange={setOpenAdd}>
                 <DialogTrigger asChild>
                   <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Thêm kết quả
+                    <Plus className="h-4 w-4" /> Thêm bản ghi
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-xl">
                   <DialogHeader>
-                    <DialogTitle>Thêm kết quả trúng thưởng</DialogTitle>
+                    <DialogTitle>Thêm tham gia / trúng thưởng</DialogTitle>
                     <DialogDescription>
-                      Nhập thông tin và lưu.
+                      Điền thông tin và lưu.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-3 pt-2">
@@ -506,7 +580,12 @@ const HistoryPage: React.FC = () => {
                           <SelectValue placeholder="Chọn chương trình" />
                         </SelectTrigger>
                         <SelectContent>
-                          {[...new Set([...PROGRAMS, ...programs])].map((p) => (
+                          {[
+                            ...new Set([
+                              ...PROGRAMS.map((p) => p.name),
+                              ...programs,
+                            ]),
+                          ].map((p) => (
                             <SelectItem key={p} value={p}>
                               {p}
                             </SelectItem>
@@ -520,10 +599,10 @@ const HistoryPage: React.FC = () => {
                       </Label>
                       <Select value={fPrize} onValueChange={setFPrize}>
                         <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Chọn giải thưởng" />
+                          <SelectValue placeholder="(tuỳ chọn) chọn nếu đã trúng" />
                         </SelectTrigger>
                         <SelectContent>
-                          {[...new Set([...PRIZES, ...prizes])].map((p) => (
+                          {PRIZES.map((p) => (
                             <SelectItem key={p} value={p}>
                               {p}
                             </SelectItem>
@@ -533,13 +612,24 @@ const HistoryPage: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-2">
                       <Label className="col-span-1 text-sm text-muted-foreground">
-                        Thời gian
+                        Thời gian bốc số
                       </Label>
                       <Input
                         className="col-span-3"
                         type="datetime-local"
-                        value={fDate}
-                        onChange={(e) => setFDate(e.target.value)}
+                        value={fDateDraw}
+                        onChange={(e) => setFDateDraw(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-2">
+                      <Label className="col-span-1 text-sm text-muted-foreground">
+                        Thời gian trúng
+                      </Label>
+                      <Input
+                        className="col-span-3"
+                        type="datetime-local"
+                        value={fDateWin}
+                        onChange={(e) => setFDateWin(e.target.value)}
                       />
                     </div>
                     <div className="grid grid-cols-4 items-start gap-2">
@@ -550,7 +640,7 @@ const HistoryPage: React.FC = () => {
                         className="col-span-3"
                         value={fNote}
                         onChange={(e) => setFNote(e.target.value)}
-                        placeholder="(tuỳ chọn) Ví dụ: đã gọi xác nhận, giao quà ngày ..."
+                        placeholder="(tuỳ chọn) ví dụ: đã gọi xác nhận..."
                       />
                     </div>
                   </div>
@@ -566,35 +656,33 @@ const HistoryPage: React.FC = () => {
           </div>
 
           {/* Filters */}
-          <div className="mt-4 gap-2 flex">
+          <div className="mt-4 gap-2 grid grid-cols-1 sm:grid-cols-2 lg:flex">
             <div className="relative w-full">
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Tìm theo tên, SĐT, giải thưởng, chương trình..."
+                placeholder="Tìm theo tên, SĐT, giải thưởng, mã CT..."
                 className="pl-9"
               />
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             </div>
 
-            <div className="relative">
-              <Select value={program} onValueChange={setProgram}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chương trình" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả chương trình</SelectItem>
-                  {programs.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={program} onValueChange={setProgram}>
+              <SelectTrigger className="w-full lg:w-[220px]">
+                <SelectValue placeholder="Chương trình" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả chương trình</SelectItem>
+                {programs.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <Select value={prize} onValueChange={setPrize}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full lg:w-[220px]">
                 <SelectValue placeholder="Giải thưởng" />
               </SelectTrigger>
               <SelectContent>
@@ -607,35 +695,28 @@ const HistoryPage: React.FC = () => {
               </SelectContent>
             </Select>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary" className="gap-2">
-                  <Filter className="h-4 w-4" />
-                  Preset
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Khoảng nhanh</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => quickRange("today")}>
-                  Hôm nay
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => quickRange("7d")}>
-                  7 ngày qua
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => quickRange("month")}>
-                  Tháng này
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => quickRange("all")}>
-                  Tất cả
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button variant="outline" className="gap-2" onClick={resetFilters}>
-              <RotateCcw className="h-4 w-4" />
-              Xoá lọc
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                className="gap-2"
+                onClick={() => quickRange("today")}
+              >
+                <Filter className="h-4 w-4" /> Hôm nay
+              </Button>
+              <Button variant="secondary" onClick={() => quickRange("7d")}>
+                7 ngày
+              </Button>
+              <Button variant="secondary" onClick={() => quickRange("month")}>
+                Tháng này
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={resetFilters}
+              >
+                <RotateCcw className="h-4 w-4" /> Xoá lọc
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -645,36 +726,52 @@ const HistoryPage: React.FC = () => {
             <Card className="border-dashed">
               <CardContent className="p-4">
                 <div className="text-sm text-muted-foreground">
-                  Tổng lượt trúng
-                </div>
-                <div className="mt-1 text-2xl font-semibold">{total}</div>
-              </CardContent>
-            </Card>
-            <Card className="border-dashed">
-              <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">
-                  Số lượng tham gia
+                  Tổng số lượt tham gia
                 </div>
                 <div className="mt-1 text-2xl font-semibold">
-                  {uniquePhones}
+                  {totalParticipations}
                 </div>
               </CardContent>
             </Card>
             <Card className="border-dashed">
               <CardContent className="p-4">
                 <div className="text-sm text-muted-foreground">
-                  Phân bố theo giải (Top)
+                  Tổng số may mắn bốc
+                </div>
+                <div className="mt-1 text-2xl font-semibold">
+                  {totalLuckyNumbers}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-dashed">
+              <CardContent className="p-4">
+                <div className="text-sm text-muted-foreground">
+                  Grid view giải (click để lọc)
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {prizeSummary.slice(0, 4).map(([k, v]) => (
-                    <Badge
+                  {prizeSummary.slice(0, 8).map(([k, v]) => (
+                    <button
                       key={k}
-                      variant={prizeVariant(k)}
-                      className="rounded-full"
+                      onClick={() => onPickPrize(k)}
+                      title="Lọc theo giải"
+                      className="rounded-full ring-1 ring-border px-2.5 py-1 text-xs hover:bg-muted"
                     >
-                      {k}: {v}
-                    </Badge>
+                      <span className={cn("mr-1 inline-flex")}>
+                        <Badge
+                          variant={prizeVariant(k)}
+                          className="rounded-full"
+                        >
+                          {k}
+                        </Badge>
+                      </span>
+                      <span className="text-muted-foreground">({v})</span>
+                    </button>
                   ))}
+                  {prizeSummary.length === 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      Chưa có dữ liệu trúng
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -683,241 +780,343 @@ const HistoryPage: React.FC = () => {
 
         <Separator />
 
+        {/* Tabs */}
         <CardContent className="pt-4">
-          <ScrollArea className="h-[520px] rounded-md border">
-            <Table className="text-sm">
-              <TableHeader className="sticky top-0 z-10 bg-background">
-                <TableRow className="[&>th]:h-10 [&>th]:px-3">
-                  <TableHead className="w-10 text-center">#</TableHead>
+          <Tabs
+            value={tab}
+            onValueChange={(v) => {
+              const key = v as TabKey;
+              setTab(key);
+              setPage(pageCache[key] ?? 1);
+            }}
+            className="w-full"
+          >
+            <TabsList className="flex flex-wrap gap-1 rounded-2xl bg-muted/40 p-1">
+              <TabsTrigger
+                value="participants"
+                className="rounded-xl px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
+                onClick={() =>
+                  setPageCache((m) => ({ ...m, participants: page }))
+                }
+              >
+                Danh sách tham gia
+              </TabsTrigger>
+              <TabsTrigger
+                value="winners"
+                className="rounded-xl px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
+                onClick={() => setPageCache((m) => ({ ...m, winners: page }))}
+              >
+                Danh sách trúng thưởng
+              </TabsTrigger>
+            </TabsList>
 
-                  <TableHead
-                    className="cursor-pointer select-none"
-                    onClick={() => toggleSort("name")}
-                  >
-                    <div className="inline-flex items-center gap-1">
-                      Tên
-                      <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
-                    </div>
-                  </TableHead>
+            <TabsContent value="participants" className="mt-4">
+              <DataTable
+                rows={visible}
+                totalFiltered={filtered.length}
+                totalAll={baseList.length}
+                page={safePage}
+                pageSize={pageSize}
+                maxPage={maxPage}
+                onPage={(p) => setPage(p)}
+                onPageSize={(n) => {
+                  setPageSize(n);
+                  setPage(1);
+                }}
+                toggleSort={toggleSort}
+                sortBy={sortBy}
+                sortDir={sortDir}
+                hidePhone={hidePhone}
+                programCodes={programCodes}
+                mode="participants"
+                copyToClipboard={copyToClipboard}
+                newestWithin24h={newestWithin24h}
+              />
+            </TabsContent>
 
-                  <TableHead
-                    className="cursor-pointer select-none"
-                    onClick={() => toggleSort("phone")}
-                  >
-                    <div className="inline-flex items-center gap-1">
-                      Số điện thoại
-                      <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
-                    </div>
-                  </TableHead>
+            <TabsContent value="winners" className="mt-4">
+              <DataTable
+                rows={visible}
+                totalFiltered={filtered.length}
+                totalAll={baseList.length}
+                page={safePage}
+                pageSize={pageSize}
+                maxPage={maxPage}
+                onPage={(p) => setPage(p)}
+                onPageSize={(n) => {
+                  setPageSize(n);
+                  setPage(1);
+                }}
+                toggleSort={toggleSort}
+                sortBy={sortBy}
+                sortDir={sortDir}
+                hidePhone={hidePhone}
+                programCodes={programCodes}
+                mode="winners"
+                copyToClipboard={copyToClipboard}
+                newestWithin24h={newestWithin24h}
+              />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
 
-                  <TableHead
-                    className="cursor-pointer select-none"
-                    onClick={() => toggleSort("prize")}
-                  >
-                    <div className="inline-flex items-center gap-1">
-                      Giải thưởng
-                      <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
-                    </div>
-                  </TableHead>
+// ---------------------- Table (reusable cho 2 tab) ----------------------
+function DataTable(props: {
+  rows: HistoryRow[];
+  totalFiltered: number;
+  totalAll: number;
+  page: number;
+  pageSize: number;
+  maxPage: number;
+  onPage: (p: number) => void;
+  onPageSize: (n: number) => void;
+  sortBy: SortKey;
+  sortDir: SortDir;
+  toggleSort: (key: SortKey) => void;
+  hidePhone: boolean;
+  programCodes: Map<string, string>;
+  mode: "participants" | "winners";
+  copyToClipboard: (text: string) => void;
+  newestWithin24h: (iso?: string) => boolean;
+}) {
+  const {
+    rows,
+    totalFiltered,
+    totalAll,
+    page,
+    pageSize,
+    maxPage,
+    onPage,
+    onPageSize,
+    sortBy,
+    sortDir,
+    toggleSort,
+    hidePhone,
+    programCodes,
+    mode,
+    copyToClipboard,
+    newestWithin24h,
+  } = props;
 
-                  <TableHead
-                    className="cursor-pointer select-none"
-                    onClick={() => toggleSort("program")}
-                  >
-                    <div className="inline-flex items-center gap-1">
-                      Chương trình
-                      <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
-                    </div>
-                  </TableHead>
+  const headerCell = (label: string, key: SortKey, extra?: string) => (
+    <TableHead
+      className={cn("cursor-pointer select-none", extra)}
+      onClick={() => toggleSort(key)}
+    >
+      <div className="inline-flex items-center gap-1">
+        {label}
+        <ArrowUpDown
+          className={cn(
+            "h-3.5 w-3.5 opacity-60",
+            sortBy === key ? (sortDir === "asc" ? "rotate-180" : "") : ""
+          )}
+        />
+      </div>
+    </TableHead>
+  );
 
-                  <TableHead
-                    className="w-[230px] cursor-pointer select-none"
-                    onClick={() => toggleSort("wonAt")}
-                  >
-                    <div className="inline-flex items-center gap-1">
-                      Ngày trúng thưởng
-                      <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
-                    </div>
-                  </TableHead>
+  return (
+    <div className="space-y-4 w-[calc(100vw-350px)]">
+      <ScrollArea className="h-[520px] rounded-md border">
+        <Table className="text-sm">
+          <TableHeader className="sticky top-0 z-10 bg-background">
+            <TableRow className="[&>th]:h-10 [&>th]:px-3">
+              <TableHead className="w-10 text-center">#</TableHead>
+              {headerCell("Chương trình", "program")}
+              {headerCell("Mã", "programCode", "w-[90px]")}
+              {headerCell("Tên khách hàng", "name")}
+              {headerCell("Số điện thoại", "phone")}
+              <TableHead>Địa chỉ</TableHead>
+              <TableHead>CCCD</TableHead>
+              <TableHead>Ghi chú</TableHead>
+              {headerCell("Thời gian bốc số", "drawAt", "w-[200px]")}
+              {headerCell("Thời gian trúng thưởng", "wonAt", "w-[200px]")}
+              <TableHead className="w-[72px] text-right">Thao tác</TableHead>
+            </TableRow>
+          </TableHeader>
 
-                  <TableHead className="w-[70px] text-right">
-                    Thao tác
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
+          <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
+            {rows.map((r, idx) => (
+              <TableRow
+                key={r.id}
+                className="[&>td]:px-3 [&>td]:py-2 hover:bg-muted/50"
+              >
+                <TableCell className="text-center">
+                  {(page - 1) * pageSize + idx + 1}
+                </TableCell>
 
-              <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                {visible.map((r, idx) => (
-                  <TableRow
-                    key={r.id}
-                    className="[&>td]:px-3 [&>td]:py-2 hover:bg-muted/50"
-                  >
-                    <TableCell className="text-center">
-                      {(safePage - 1) * pageSize + idx + 1}
-                    </TableCell>
-
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {/* Avatar chữ cái */}
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px]">
-                          {(r.name && r.name[0]) || "?"}
-                        </div>
-                        <div>
-                          {r.name?.trim() ? (
-                            r.name
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                          {newestWithin24h(r.wonAt) && (
-                            <Badge
-                              className="ml-2 h-5 rounded-full px-2 text-[11px]"
-                              variant="outline"
-                            >
-                              Mới
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="font-mono">
-                      <div className="flex items-center gap-2">
-                        <span>{maskPhone(r.phone, hidePhone)}</span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                className="rounded p-1 hover:bg-muted"
-                                onClick={() => copyToClipboard(r.phone)}
-                                title="Sao chép SĐT"
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>Sao chép SĐT</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
+                <TableCell className="truncate max-w-[220px]">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{r.program}</span>
+                    {r.prize && r.wonAt && (
                       <Badge
                         variant={prizeVariant(r.prize)}
                         className="rounded-full"
                       >
                         {r.prize}
                       </Badge>
-                    </TableCell>
+                    )}
+                  </div>
+                </TableCell>
 
-                    <TableCell className="truncate max-w-[260px]">
-                      {r.program}
-                    </TableCell>
+                <TableCell className="font-mono">
+                  {programCodes.get(r.program) || r.programCode || "—"}
+                </TableCell>
 
-                    <TableCell>{formatDateTime(r.wonAt)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px]">
+                      {(r.name && r.name[0]) || "?"}
+                    </div>
+                    <div>
+                      {r.name?.trim() ? (
+                        r.name
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                      {(mode === "participants"
+                        ? newestWithin24h(r.drawAt)
+                        : newestWithin24h(r.wonAt)) && (
+                        <Badge
+                          className="ml-2 h-5 rounded-full px-2 text-[11px]"
+                          variant="outline"
+                        >
+                          Mới
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
 
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                          <DropdownMenuItem
+                <TableCell className="font-mono">
+                  <div className="flex items-center gap-2">
+                    <span>{maskPhone(r.phone, hidePhone)}</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            className="rounded p-1 hover:bg-muted"
                             onClick={() => copyToClipboard(r.phone)}
+                            title="Sao chép SĐT"
                           >
-                            <Copy className="mr-2 h-4 w-4" />
-                            Sao chép SĐT
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => alert(JSON.stringify(r, null, 2))}
-                          >
-                            <Info className="mr-2 h-4 w-4" />
-                            Xem chi tiết
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Sao chép SĐT</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </TableCell>
+
+                <TableCell className="truncate max-w-[180px]">
+                  {r.address?.trim() || "—"}
+                </TableCell>
+                <TableCell className="truncate max-w-[140px]">
+                  {r.idCard?.trim() || "—"}
+                </TableCell>
+                <TableCell className="truncate max-w-[220px]">
+                  {r.note?.trim() || "—"}
+                </TableCell>
+
+                <TableCell>{formatDateTime(r.drawAt)}</TableCell>
+                <TableCell>{formatDateTime(r.wonAt)}</TableCell>
+
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => navigator.clipboard.writeText(r.phone)}
+                      >
+                        <Copy className="mr-2 h-4 w-4" /> Sao chép SĐT
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => alert(JSON.stringify(r, null, 2))}
+                      >
+                        <Info className="mr-2 h-4 w-4" /> Xem chi tiết
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+
+            {rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={11} className="h-[120px] text-center">
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    Không có dữ liệu phù hợp
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+
+      {/* footer */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="text-sm text-muted-foreground">
+          Hiển thị <span className="font-medium">{rows.length}</span> /{" "}
+          <span className="font-medium">{totalFiltered}</span> kết quả
+          {totalFiltered !== totalAll && <> (tổng {totalAll})</>}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            <span>Kích thước trang</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => onPageSize(Number(v))}
+            >
+              <SelectTrigger className="h-8 w-[86px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 25, 50, 100].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
                 ))}
-
-                {visible.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-[120px] text-center">
-                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        Không có dữ liệu phù hợp
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-
-          {/* footer */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm text-muted-foreground">
-              Hiển thị <span className="font-medium">{visible.length}</span> /{" "}
-              <span className="font-medium">{filtered.length}</span> kết quả
-              {filtered.length !== rows.length && <> (tổng {rows.length})</>}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm">
-                <span>Kích thước trang</span>
-                <Select
-                  value={String(pageSize)}
-                  onValueChange={(v) => {
-                    setPageSize(Number(v));
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-[86px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[10, 25, 50, 100].map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  size="icon"
-                  variant="outline"
-                  disabled={safePage <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <div className="min-w-[120px] text-center text-sm">
-                  Trang <span className="font-medium">{safePage}</span> /{" "}
-                  {maxPage}
-                </div>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  disabled={safePage >= maxPage}
-                  onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => onPage(Math.max(1, page - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-[120px] text-center text-sm">
+              Trang <span className="font-medium">{page}</span> / {maxPage}
+            </div>
+            <Button
+              size="icon"
+              variant="outline"
+              disabled={page >= maxPage}
+              onClick={() => onPage(Math.min(maxPage, page + 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
-};
+}
 
 export default HistoryPage;

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { IconAd2, IconHistory } from "@tabler/icons-react";
+import { IconAd2, IconDashboard, IconHistory } from "@tabler/icons-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -20,6 +20,11 @@ const data = {
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
+    {
+      title: "Dashboard",
+      url: "/main/dashboard",
+      icon: IconDashboard,
+    },
     {
       title: "Chương trình",
       url: "/main/program",

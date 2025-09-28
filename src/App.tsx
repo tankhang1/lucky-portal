@@ -5,6 +5,7 @@ import ErrorPage from "./pages/error";
 import MainPage from "./pages/main";
 import ProgramPage from "./pages/program";
 import HistoryPage from "./pages/history";
+import DashboardPage from "./pages/dashboard";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Route path="/main" element={<MainPage />}>
         <Route index path="program" element={<ProgramPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="dashboard" element={<DashboardPage />} />
         <Route path="*" element={<ErrorPage />} />
       </Route>
       <Route path="*" element={<ErrorPage />} />
