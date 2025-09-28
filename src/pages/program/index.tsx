@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,34 +27,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Plus,
   Trash2,
   Upload,
-  ListChecks,
   Sparkles,
   Image as ImageIcon,
   Search,
   Copy,
   Eye,
-  Download,
   UploadCloud,
-  Save,
   Pencil,
   MoreHorizontal,
-  CheckCircle2,
   Info,
   ArrowUpDown,
   Filter,
+  CalendarClock,
+  Check,
+  GripVertical,
+  Clock,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -71,10 +69,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { IconDotsVertical } from "@tabler/icons-react";
+import { IconDotsVertical, IconTransferVertical } from "@tabler/icons-react";
+import JoditEditor from "jodit-react";
+import Stepper from "@/components/stepper";
+import { ImageField } from "@/components/image-field";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { SortableRow, useSortableHandle } from "@/components/sortable-row";
 import { Switch } from "@/components/ui/switch";
-
+import ActionIcon from "@/components/action-icon";
 const fileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -86,6 +95,7 @@ const fileToDataUrl = (file: File) =>
 const prizeSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
+  prizeName: z.string().optional(),
   image: z.string().optional().or(z.literal("")).optional(),
   stock: z.number().int().nonnegative().default(0),
   note: z.string().optional().default(""),
@@ -120,13 +130,49 @@ const rangeSchema = z
 const programSchema = z.object({
   id: z.string(),
   programName: z.string().min(1, "Nhập tên chương trình"),
+  programCode: z.string().optional().default(""),
+  slogan: z.string().optional().default(""),
   image: z.string().optional().default(""),
   enabled: z.boolean().default(true),
+  shortSummary: z.string().optional().default(""),
   summary: z.string().optional().default(""),
   rules: z.array(z.string()).default([]),
   prizes: z.array(prizeSchema).default([]),
   normalPrizes: z.array(normalPrizeSchema).default([]),
   ranges: z.array(rangeSchema).default([]),
+  clientFields: z.array(z.string()).default([]),
+  reminder: z
+    .object({
+      enabled: z.boolean().default(false),
+      sendAt: z.string().optional().default(""),
+      message: z.string().optional().default(""),
+      channel: z.enum(["sms", "zalo", "email"]).optional(),
+    })
+    .default({
+      enabled: false,
+      sendAt: "",
+      message: "",
+    }),
+  zalo: z
+    .object({
+      banner: z.string().optional().default(""),
+      thumb: z.string().optional().default(""),
+    })
+    .default({
+      banner: "",
+      thumb: "",
+    }),
+  landing: z
+    .object({
+      background: z.string().optional().default(""),
+      thumb: z.string().optional().default(""),
+    })
+    .default({
+      background: "",
+      thumb: "",
+    }),
+  startedAt: z.string().optional(),
+  endedAt: z.string().optional(),
   specialNumbers: z
     .array(
       z.object({
@@ -138,6 +184,23 @@ const programSchema = z.object({
       })
     )
     .default([]),
+  scenario: z.object({
+    drawType: z.enum(["cage", "online"]).default("cage"),
+    range: z.object({
+      min: z.number().int().positive().default(0),
+      max: z.number().int().positive().default(9999),
+      repeat: z.number().int().positive().default(1),
+    }),
+    singles: z
+      .array(
+        z.object({
+          value: z.number().int().nonnegative(),
+          repeat: z.number().int().positive().default(1),
+          prizeId: z.string().optional(),
+        })
+      )
+      .default([]),
+  }),
 });
 
 type Prize = z.infer<typeof prizeSchema>;
@@ -228,10 +291,26 @@ const defaultPrograms = (): Program[] => [
   {
     id: crypto.randomUUID(),
     programName: "Tết 2025 – Lì xì vui vẻ",
+    programCode: "TET2025",
     image: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
+    slogan: "Chúc bạn một năm mới an khang thịnh vượng",
     enabled: true,
-    summary:
-      "Chương trình tri ân khách hàng dịp Tết 2025. Tham gia quay số nhận e-voucher và quà Tết hấp dẫn.",
+    summary: `<p><span style="font-size: 14px;">Chương trình tri ân khách hàng dịp tết 2025. Tham gia quay số nhận e-voucher và quà Tết hấp dẫn.</span></p><ul><li><span style="font-size: 14px;">Mỗi số điện thoại được tham gia theo số lượt quay được cấp.</span></li><li><span style="font-size: 14px;">Giải thưởng không quy đổi thành tiền mặt.</span></li><span style="font-size: 14px;"><br></span></ul>`,
+    shortSummary: "Chương trình Tết 2025 với nhiều phần quà hấp dẫn.",
+    clientFields: ["name", "email"],
+    reminder: {
+      enabled: false,
+      sendAt: "",
+      message: "",
+    },
+    landing: {
+      background: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
+      thumb: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
+    },
+    zalo: {
+      banner: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
+      thumb: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
+    },
     rules: [
       "Mỗi số điện thoại được tham gia theo số lượt quay được cấp.",
       "Giải thưởng không quy đổi thành tiền mặt.",
@@ -241,6 +320,7 @@ const defaultPrograms = (): Program[] => [
       {
         id: "p-evoucher",
         name: "E-voucher 50K",
+        prizeName: "Voucher 50.000đ",
         image: "",
         stock: 1000,
         note: "Mã trị giá 50.000đ",
@@ -248,6 +328,7 @@ const defaultPrograms = (): Program[] => [
       {
         id: "p-combo-tet",
         name: "Combo Tết",
+        prizeName: "Combo quà Tết",
         image: "",
         stock: 200,
         note: "Gồm nhiều sản phẩm",
@@ -255,6 +336,7 @@ const defaultPrograms = (): Program[] => [
       {
         id: "p-jackpot",
         name: "Jackpot 5,000,000đ",
+        prizeName: "Giải đặc biệt 5.000.000đ",
         image: "",
         stock: 5,
         note: "Giải đặc biệt",
@@ -281,14 +363,36 @@ const defaultPrograms = (): Program[] => [
       { value: 7777, prizeId: "p-jackpot" },
       { value: 2025, prizeId: "p-combo-tet" },
     ],
+    scenario: {
+      drawType: "online",
+      range: { min: 0, max: 9999, repeat: 1 },
+      singles: [],
+    },
   },
   {
     id: crypto.randomUUID(),
     programName: "Sinh nhật 10 năm",
     image: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
+    programCode: "BDAY10",
+    slogan: "Kỷ niệm 10 năm – Quay là trúng",
     enabled: false,
+    reminder: {
+      enabled: false,
+      sendAt: "",
+      message: "",
+    },
+    landing: {
+      background: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
+      thumb: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
+    },
+    zalo: {
+      banner: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
+      thumb: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
+    },
     summary:
       "Kỷ niệm 10 năm, tham gia quay số để nhận bộ quà đặc biệt dành riêng cho sự kiện.",
+    shortSummary: "Kỷ niệm 10 năm với bộ quà đặc biệt.",
+    clientFields: ["name", "email", "address"],
     rules: [
       "Áp dụng cho khách hàng mời tham dự sự kiện.",
       "Thông tin người trúng thưởng phải trùng khớp khi nhận quà.",
@@ -297,6 +401,7 @@ const defaultPrograms = (): Program[] => [
       {
         id: "p-birthday-kit",
         name: "Bộ quà sinh nhật",
+        prizeName: "Bộ quà 10 năm",
         image: "",
         stock: 300,
         note: "",
@@ -314,6 +419,11 @@ const defaultPrograms = (): Program[] => [
     ],
     ranges: [],
     specialNumbers: [{ value: 1010, prizeId: "p-10yrs" }],
+    scenario: {
+      drawType: "online",
+      range: { min: 0, max: 9999, repeat: 1 },
+      singles: [],
+    },
   },
 ];
 
@@ -412,42 +522,10 @@ function TableEmpty({
   );
 }
 
-function ActionIcon({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onClick}
-            className="h-8 w-8"
-          >
-            {children}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{label}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
-
 export default function ProgramPage() {
   const [programs, setPrograms] = useState<Program[]>(defaultPrograms());
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState(programs[0].id);
-  const [issues, setIssues] = useState<{
-    programIssues: Record<string, Issue[]>;
-    customerIssues: Issue[];
-  } | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerRow[]>(defaultCustomers);
   const [newName, setNewName] = useState("");
@@ -455,15 +533,24 @@ export default function ProgramPage() {
   const [newAttempts, setNewAttempts] = useState<string>("");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const excelRef = useRef<HTMLInputElement | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [step, setStep] = useState(0);
+  const [openHistory, setOpenHistory] = React.useState(false);
+  const [historyOf, setHistoryOf] = React.useState<CustomerRow | null>(null);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "enabled" | "disabled"
   >("all");
+
   const [sortBy, setSortBy] = useState<"name" | "prizes">("name");
   const activeProgram = useMemo(
     () => programs.find((p) => p.id === activeId)!,
     [programs, activeId]
   );
+  const historyByPhone: Record<
+    string,
+    Array<{ at: string; action: string; result?: string }>
+  > = {
+    // "0901111222": [{ at: "2025-01-12 09:00", action: "Tham gia bốc số", result: "Số 2025" }],
+  };
 
   const setActiveProgramPatch = (patch: Partial<Program>) =>
     setPrograms((prev) =>
@@ -473,15 +560,39 @@ export default function ProgramPage() {
   const addProgram = () => {
     const p: Program = {
       id: crypto.randomUUID(),
+      programCode: "",
       programName: `Chương trình #${programs.length + 1}`,
       image: "",
+      slogan: "",
       enabled: true,
+      shortSummary: "",
       summary: "",
+      zalo: {
+        banner: "",
+        thumb: "",
+      },
+      landing: {
+        background: "",
+        thumb: "",
+      },
       rules: [],
       prizes: [],
       normalPrizes: [],
       ranges: [],
+      clientFields: [],
       specialNumbers: [],
+      reminder: {
+        enabled: false,
+        sendAt: "",
+        message: "",
+      },
+      startedAt: undefined,
+      endedAt: undefined,
+      scenario: {
+        drawType: "cage",
+        range: { min: 0, max: 9999, repeat: 1 },
+        singles: [],
+      },
     };
     setPrograms((x) => [...x, p]);
     setActiveId(p.id);
@@ -546,63 +657,13 @@ export default function ProgramPage() {
     setActiveProgramPatch({ prizes, normalPrizes, specialNumbers });
   };
 
-  const addNormalPrize = () => {
-    if (!activeProgram.prizes.length) return;
-    setActiveProgramPatch({
-      normalPrizes: [
-        ...activeProgram.normalPrizes,
-        {
-          prizeId: activeProgram.prizes[0].id,
-          quantity: 1,
-          min: 0,
-          max: 0,
-          defaultDrawsPerNumber: 0,
-        },
-      ],
-    });
-  };
-  const updateNormalPrize = (i: number, patch: Partial<NormalPrize>) => {
-    const arr = [...activeProgram.normalPrizes];
-    arr[i] = { ...arr[i], ...patch } as NormalPrize;
-    setActiveProgramPatch({ normalPrizes: arr });
-  };
-  const removeNormalPrize = (i: number) => {
-    const arr = [...activeProgram.normalPrizes];
-    arr.splice(i, 1);
-    setActiveProgramPatch({ normalPrizes: arr });
-  };
-
-  const addSpecial = () =>
-    setActiveProgramPatch({
-      specialNumbers: [
-        ...activeProgram.specialNumbers,
-        { value: 0, prize: "", prizeId: undefined, number: 0, draws: 0 },
-      ],
-    });
-  const updateSpecial = (
-    idx: number,
-    patch: Partial<Program["specialNumbers"][number]>
-  ) => {
-    const arr = [...activeProgram.specialNumbers];
-    arr[idx] = { ...arr[idx], ...patch };
-    setActiveProgramPatch({ specialNumbers: arr });
-  };
-  const removeSpecial = (idx: number) => {
-    const arr = [...activeProgram.specialNumbers];
-    arr.splice(idx, 1);
-    setActiveProgramPatch({ specialNumbers: arr });
-  };
-
   const handleCsvFiles = async (files: FileList | null) => {
     const f = files?.[0];
     if (!f) return;
     const rows = await parseCustomersCsv(f);
     setCustomers(rows);
   };
-  const onDropCsv: React.DragEventHandler<HTMLDivElement> = async (e) => {
-    e.preventDefault();
-    await handleCsvFiles(e.dataTransfer.files);
-  };
+
   const addOneCustomer = () => {
     const phone = newPhone.replace(/[^\d+]/g, "");
     const attempts = Number(newAttempts) || 0;
@@ -621,14 +682,6 @@ export default function ProgramPage() {
     setNewAttempts("");
   };
   const canAdd = !!newPhone.replace(/[^\d+]/g, "");
-  const runValidate = () => {
-    const v = validateAll(programs, customers);
-    setIssues({
-      programIssues: v.programIssues,
-      customerIssues: v.customerIssues,
-    });
-    if (v.ok) alert("✅ Dữ liệu hợp lệ");
-  };
 
   const exportJson = () => {
     const data = JSON.stringify({ programs, customers }, null, 2);
@@ -667,6 +720,12 @@ export default function ProgramPage() {
         programName: String(
           r.programName || r.name || `Chương trình #${i + 1}`
         ),
+        landing: r.landing,
+        zalo: r.zalo,
+        shortSummary: String(r.shortSummary || ""),
+        programCode: String(r.programCode || r.code || ""),
+        clientFields: r.clientFields || [],
+        slogan: String(r.slogan || ""),
         enabled: toBool(r.enabled ?? true),
         summary: String(r.summary || ""),
         rules: String(r.rules || "")
@@ -677,6 +736,25 @@ export default function ProgramPage() {
         normalPrizes: [],
         ranges: [],
         specialNumbers: [],
+        reminder: {
+          enabled: toBool(r.reminderEnabled ?? r.reminder?.enabled ?? false),
+          sendAt: String(r.reminderSendAt || r.reminder?.sendAt || ""),
+          message: String(r.reminderMessage || r.reminder?.message || ""),
+        },
+        startedAt: r.startedAt ? String(r.startedAt) : undefined,
+        endedAt: r.endedAt ? String(r.endedAt) : undefined,
+        scenario: {
+          drawType:
+            r.drawType === "cage" || r.drawType === "online"
+              ? r.drawType
+              : "online",
+          range: {
+            min: Number(r.rangeMin ?? 0) || 0,
+            max: Number(r.rangeMax ?? 9999) || 9999,
+            repeat: Number(r.rangeRepeat ?? 1) || 1,
+          },
+          singles: [],
+        },
       };
     });
 
@@ -737,19 +815,6 @@ export default function ProgramPage() {
     if (programsImported[0]?.id) setActiveId(programsImported[0].id);
     else if (programsImported.length === 0)
       alert("Không có chương trình hợp lệ trong Excel");
-  };
-
-  const addRule = () =>
-    setActiveProgramPatch({ rules: [...activeProgram.rules, ""] });
-  const updateRule = (i: number, v: string) => {
-    const rules = [...activeProgram.rules];
-    rules[i] = v;
-    setActiveProgramPatch({ rules });
-  };
-  const removeRule = (i: number) => {
-    const rules = [...activeProgram.rules];
-    rules.splice(i, 1);
-    setActiveProgramPatch({ rules });
   };
 
   return (
@@ -861,11 +926,14 @@ export default function ProgramPage() {
               </DropdownMenu>
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <Badge variant="secondary">Tổng: {stats.total}</Badge>
-              <Badge>Đang bật: {stats.enabled}</Badge>
-              <Badge variant="outline">Đang tắt: {stats.disabled}</Badge>
-            </div>
+            <ScrollArea>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <Badge variant="secondary">Tổng: {stats.total}</Badge>
+                <Badge>Đang bật: {stats.enabled}</Badge>
+                <Badge variant="outline">Đang tắt: {stats.disabled}</Badge>
+              </div>
+              <ScrollBar />
+            </ScrollArea>
 
             <ScrollArea className="h-[520px]">
               <div className="space-y-2">
@@ -943,9 +1011,9 @@ export default function ProgramPage() {
                             <span>Giải: {p.prizes.length}</span>
                             <span>Đặc biệt: {p.specialNumbers.length}</span>
                           </div>
-                          {p.summary ? (
+                          {p.shortSummary ? (
                             <div className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                              {p.summary}
+                              {p.shortSummary}
                             </div>
                           ) : null}
                         </div>
@@ -965,310 +1033,383 @@ export default function ProgramPage() {
         </Card>
 
         <Card className="lg:col-span-8 xl:col-span-9">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-4">
-              <div
-                className="relative group"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={async (e) => {
-                  e.preventDefault();
-                  const f = e.dataTransfer.files?.[0];
-                  if (!f || !f.type.startsWith("image/")) return;
-                  if (f.size > 2 * 1024 * 1024) {
-                    alert("Vui lòng chọn ảnh ≤ 2MB");
-                    return;
-                  }
-                  setActiveProgramPatch({ image: await fileToDataUrl(f) });
-                }}
-              >
-                <div className="h-14 w-20 overflow-hidden rounded-xl ring-1 ring-border bg-gradient-to-br from-muted/60 to-muted/20">
-                  {activeProgram.image ? (
-                    <img
-                      src={activeProgram.image}
-                      alt=""
-                      className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-                    />
-                  ) : (
-                    <div className="h-full w-full grid place-content-center text-[10px] text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <ImageIcon className="h-3 w-3" />
-                        Ảnh chương trình
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="absolute right-1 top-1 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 transition"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" sideOffset={6}>
-                    <DropdownMenuItem
-                      className="flex items-center gap-2"
-                      onClick={() =>
-                        document.getElementById("program-image-input")?.click()
-                      }
-                    >
-                      <Upload className="h-4 w-4" />
-                      Tải ảnh mới
-                    </DropdownMenuItem>
-
-                    {activeProgram.image && (
-                      <DropdownMenuItem>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <div className="flex items-center gap-2">
-                              <Eye className="h-4 w-4" />
-                              Xem lớn
-                            </div>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
+          <Stepper
+            steps={[
+              { id: "info", label: "Thông tin" },
+              { id: "prizes", label: "Giải thưởng" },
+              { id: "images", label: "Hình ảnh" },
+              { id: "scenario", label: "Kịch bản" },
+              { id: "client", label: "Khách hàng" },
+            ]}
+            orientation="horizontal"
+            onValueChange={setStep}
+            defaultValue={step}
+            value={step}
+          >
+            {step === 0 && (
+              <div>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-4">
+                      <div
+                        className="relative group"
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={async (e) => {
+                          e.preventDefault();
+                          const f = e.dataTransfer.files?.[0];
+                          if (!f || !f.type.startsWith("image/")) return;
+                          if (f.size > 2 * 1024 * 1024) {
+                            alert("Vui lòng chọn ảnh ≤ 2MB");
+                            return;
+                          }
+                          setActiveProgramPatch({
+                            image: await fileToDataUrl(f),
+                          });
+                        }}
+                      >
+                        <div className="h-20 w-28 overflow-hidden rounded-xl ring-1 ring-border bg-gradient-to-br from-muted/60 to-muted/20">
+                          {activeProgram.image ? (
                             <img
                               src={activeProgram.image}
                               alt=""
-                              className="w-full h-auto rounded-xl object-contain"
+                              className="h-full w-full object-cover transition group-hover:scale-[1.02]"
                             />
-                          </DialogContent>
-                        </Dialog>
-                      </DropdownMenuItem>
-                    )}
-
-                    {activeProgram.image && (
-                      <DropdownMenuItem
-                        className="flex items-center gap-2 text-red-600"
-                        onClick={() => setActiveProgramPatch({ image: "" })}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Xoá ảnh
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <input
-                  id="program-image-input"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    if (f.size > 2 * 1024 * 1024) {
-                      alert("Vui lòng chọn ảnh ≤ 2MB");
-                      return;
-                    }
-                    setActiveProgramPatch({ image: await fileToDataUrl(f) });
-                  }}
-                />
-              </div>
-
-              <Input
-                value={activeProgram.programName}
-                onChange={(e) =>
-                  setActiveProgramPatch({ programName: e.target.value })
-                }
-                className="max-w-60"
-                placeholder="Tên chương trình"
-              />
-
-              <div className="ml-auto flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant={activeProgram.enabled ? "default" : "outline"}
-                  className="min-w-[104px]"
-                  onClick={() =>
-                    setActiveProgramPatch({ enabled: !activeProgram.enabled })
-                  }
-                >
-                  {activeProgram.enabled ? "Đang bật" : "Đang tắt"}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => console.log({ programs, customers })}
-                >
-                  <Save className="h-4 w-4" />
-                  Lưu
-                </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="border-dashed">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Info className="h-4 w-4" />
-                    Thông tin chương trình
-                  </CardTitle>
-                  <CardDescription>
-                    Mô tả ngắn và quy tắc tham gia
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Mô tả</div>
-                    <Textarea
-                      value={activeProgram.summary}
-                      onChange={(e) =>
-                        setActiveProgramPatch({ summary: e.target.value })
-                      }
-                      placeholder="Giới thiệu ngắn gọn về chương trình..."
-                      className="min-h-[96px]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">Quy tắc</div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5"
-                        onClick={addRule}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Thêm quy tắc
-                      </Button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {activeProgram.rules.length === 0 && (
-                        <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-xs text-muted-foreground">
-                          Chưa có quy tắc. Nhấn “Thêm quy tắc” để bắt đầu.
+                          ) : (
+                            <div className="h-full w-full grid place-content-center text-[10px] text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <ImageIcon className="h-3 w-3" />
+                                Ảnh chương trình
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {activeProgram.rules.map((r, i) => (
-                        <div key={i} className="flex items-start gap-2">
-                          <div className="mt-2">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                          </div>
-                          <Textarea
-                            value={r}
-                            onChange={(e) => updateRule(i, e.target.value)}
-                            placeholder={`Nội dung quy tắc #${i + 1}`}
-                            className="min-h-[60px]"
-                          />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => removeRule(i)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Xem trước</CardTitle>
-                  <CardDescription>
-                    Bản xem trước cho landing/mini app
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-hidden rounded-2xl border shadow-sm">
-                    <div className="relative w-full aspect-[16/9] bg-muted">
-                      {activeProgram.image ? (
-                        <img
-                          src={activeProgram.image}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-full w-full grid place-items-center text-muted-foreground text-xs">
-                          Chưa có ảnh
-                        </div>
-                      )}
-                      <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs bg-white/80 backdrop-blur">
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            activeProgram.enabled
-                              ? "bg-emerald-600"
-                              : "bg-neutral-500"
-                          }`}
-                        />
-                        {activeProgram.enabled ? "Đang bật" : "Đang tắt"}
-                      </span>
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <div className="text-base font-semibold">
-                        {activeProgram.programName || "Tên chương trình"}
-                      </div>
-                      <div className="text-sm text-muted-foreground whitespace-pre-line">
-                        {activeProgram.summary ||
-                          "Mô tả chương trình sẽ hiển thị tại đây."}
-                      </div>
-                      {activeProgram.rules.length > 0 && (
-                        <div className="mt-2">
-                          <div className="text-xs font-medium mb-1">
-                            Quy tắc
-                          </div>
-                          <ul className="space-y-1">
-                            {activeProgram.rules.slice(0, 4).map((r, i) => (
-                              <li
-                                key={i}
-                                className="text-xs text-muted-foreground flex gap-2"
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="absolute right-1 top-1 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 transition"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" sideOffset={6}>
+                            <DropdownMenuItem
+                              className="flex items-center gap-2"
+                              onClick={() =>
+                                document
+                                  .getElementById("program-image-input")
+                                  ?.click()
+                              }
+                            >
+                              <Upload className="h-4 w-4" />
+                              Tải ảnh mới
+                            </DropdownMenuItem>
+                            {activeProgram.image && (
+                              <DropdownMenuItem
+                                className="flex items-center gap-2"
+                                onClick={() =>
+                                  setPreviewImage(activeProgram.image!)
+                                }
                               >
-                                <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-primary/70" />
-                                <span>{r}</span>
-                              </li>
-                            ))}
-                          </ul>
+                                <Eye className="h-4 w-4" />
+                                Xem lớn
+                              </DropdownMenuItem>
+                            )}
+                            {activeProgram.image && (
+                              <DropdownMenuItem
+                                className="flex items-center gap-2 text-red-600"
+                                onClick={() =>
+                                  setActiveProgramPatch({ image: "" })
+                                }
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                                Xoá ảnh
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <input
+                          id="program-image-input"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            if (f.size > 2 * 1024 * 1024) {
+                              alert("Vui lòng chọn ảnh ≤ 2MB");
+                              return;
+                            }
+                            setActiveProgramPatch({
+                              image: await fileToDataUrl(f),
+                            });
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={activeProgram.programCode || ""}
+                            onChange={(e) =>
+                              setActiveProgramPatch({
+                                programCode: e.target.value,
+                              })
+                            }
+                            placeholder="Mã chương trình"
+                            className="max-w-36 uppercase font-medium"
+                          />
+                          <span
+                            onClick={() =>
+                              setActiveProgramPatch({
+                                enabled: !activeProgram.enabled,
+                              })
+                            }
+                            className={`shrink-0 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] cursor-pointer ${
+                              activeProgram.enabled
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                : "bg-neutral-50 border-neutral-200 text-neutral-600"
+                            }`}
+                          >
+                            {activeProgram.enabled ? "Đang bật" : "Đang tắt"}
+                            <IconTransferVertical size={14} />
+                          </span>
                         </div>
-                      )}
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <Input
+                            value={activeProgram.programName}
+                            onChange={(e) =>
+                              setActiveProgramPatch({
+                                programName: e.target.value,
+                              })
+                            }
+                            className="max-w-72"
+                            placeholder="Tên chương trình"
+                          />
+                        </div>
+                      </div>
                     </div>
+                  </CardTitle>
+                </CardHeader>
+
+                <CardContent className="space-y-6">
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <Card className="border-dashed">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <Info className="h-4 w-4" />
+                          Thông tin chương trình
+                        </CardTitle>
+                        <CardDescription>
+                          Mô tả ngắn và quy tắc tham gia
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Khẩu hiệu</div>
+                          <Input
+                            value={activeProgram.slogan}
+                            onChange={(e) =>
+                              setActiveProgramPatch({ slogan: e.target.value })
+                            }
+                            placeholder="Khẩu hiệu ngắn gọn (tối đa 60 ký tự)"
+                            maxLength={60}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Thời gian</div>
+                          <div className="space-y-1">
+                            <div className="text-xs text-muted-foreground">
+                              Thời gian bắt đầu và kết thúc chương trình
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-2">
+                              <div className="space-y-1">
+                                <div className="text-xs text-muted-foreground">
+                                  Bắt đầu
+                                </div>
+                                <Input
+                                  type="datetime-local"
+                                  value={activeProgram.startedAt}
+                                  onChange={(e) =>
+                                    setActiveProgramPatch({
+                                      startedAt: e.target.value,
+                                    })
+                                  }
+                                  className="!text-xs"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="text-xs text-muted-foreground">
+                                  Kết thúc
+                                </div>
+                                <Input
+                                  type="datetime-local"
+                                  value={activeProgram.endedAt}
+                                  min={activeProgram.startedAt}
+                                  onChange={(e) =>
+                                    setActiveProgramPatch({
+                                      endedAt: e.target.value,
+                                    })
+                                  }
+                                  className="!text-xs"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">Mô tả ngắn</div>
+                          <div>
+                            <Textarea
+                              value={activeProgram.shortSummary}
+                              onChange={(e) =>
+                                setActiveProgramPatch({
+                                  shortSummary: e.target.value,
+                                })
+                              }
+                              placeholder="Mô tả ngắn gọn về chương trình (tối đa 160 ký tự)"
+                              className="min-h-[60px]"
+                              maxLength={160}
+                            />
+                            <div className="text-right">
+                              <span className="text-xs text-muted-foreground">
+                                {activeProgram.shortSummary.length}/160 ký tự
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium">
+                            Mô tả chi tiết và quy tắc tham gia
+                          </div>
+                          <div>
+                            <JoditEditor
+                              value={activeProgram.summary}
+                              config={{
+                                readonly: false,
+                                height: 300,
+                                placeholder:
+                                  "Giới thiệu ngắn gọn về chương trình...",
+                                beautifyHTML: true,
+                                showXPathInStatusbar: false,
+                                showCharsCounter: false,
+                                showWordsCounter: false,
+                                askBeforePasteHTML: false, // optional: avoid paste dialog
+                                defaultActionOnPaste: "insert_as_html", // optional: default action on paste
+                                defaultMode: 1,
+                                buttons:
+                                  "bold,italic,underline,ul,ol,font,brush,paragraph,left,right,center,justify,undo,redo",
+                              }}
+                              tabIndex={1} // tabIndex of textarea
+                              onBlur={(newContent) =>
+                                setActiveProgramPatch({ summary: newContent })
+                              }
+                              className="text-sm"
+                              onChange={(newContent) => {}}
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Xem trước</CardTitle>
+                        <CardDescription>
+                          Bản xem trước cho landing/mini app
+                        </CardDescription>
+                      </CardHeader>
+
+                      <CardContent>
+                        <div className="overflow-hidden rounded-2xl border shadow-sm">
+                          <div className="relative aspect-[16/9] w-full bg-muted">
+                            {activeProgram.image ? (
+                              <img
+                                src={activeProgram.image}
+                                alt=""
+                                className="h-full w-full object-cover transition duration-300"
+                              />
+                            ) : (
+                              <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">
+                                Chưa có ảnh
+                              </div>
+                            )}
+
+                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+
+                            <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border bg-white/80 px-3 py-1 text-xs backdrop-blur">
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${
+                                  activeProgram.enabled
+                                    ? "bg-emerald-600"
+                                    : "bg-neutral-500"
+                                }`}
+                              />
+                              {activeProgram.enabled ? "Đang bật" : "Đang tắt"}
+                            </span>
+
+                            <div className="absolute inset-x-3 bottom-3 flex flex-wrap items-end justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="truncate text-base font-semibold text-white drop-shadow">
+                                  {activeProgram.programName ||
+                                    "Tên chương trình"}
+                                </div>
+                                <div className="mt-0.5 text-[11px] text-white/90 drop-shadow">
+                                  {activeProgram.programCode
+                                    ? `Mã: ${activeProgram.programCode}`
+                                    : ""}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3 p-4">
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                              <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1">
+                                <CalendarClock className="h-3.5 w-3.5" />
+                                <span>
+                                  {activeProgram.startedAt ||
+                                    activeProgram.startedAt ||
+                                    "—"}
+                                  {"  "}→{"  "}
+                                  {activeProgram.endedAt ||
+                                    activeProgram.endedAt ||
+                                    "—"}
+                                </span>
+                              </span>
+                              {activeProgram.slogan ? (
+                                <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1">
+                                  <Sparkles className="h-3.5 w-3.5" />
+                                  {activeProgram.slogan}
+                                </span>
+                              ) : null}
+                            </div>
+
+                            <div
+                              className="richtext max-h-56 overflow-y-auto"
+                              dangerouslySetInnerHTML={{
+                                __html: activeProgram.summary || "",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </CardContent>
-              </Card>
-            </div>
-
-            <Separator />
-
-            <Tabs defaultValue="prizes" className="w-full">
-              <TabsList className="flex flex-wrap gap-1 rounded-2xl bg-muted/40 p-1">
-                <TabsTrigger
-                  value="prizes"
-                  className="rounded-xl px-3 py-2 transition-colors data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
-                >
-                  Danh mục giải
-                </TabsTrigger>
-                <TabsTrigger
-                  value="normal"
-                  className="rounded-xl px-3 py-2 transition-colors data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
-                >
-                  Giải chung
-                </TabsTrigger>
-                <TabsTrigger
-                  value="specials"
-                  className="rounded-xl px-3 py-2 transition-colors data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
-                >
-                  Số đặc biệt
-                </TabsTrigger>
-                <TabsTrigger
-                  value="customers"
-                  className="rounded-xl px-3 py-2 transition-colors data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
-                >
-                  Khách hàng
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="prizes" className="space-y-4 pt-4">
+              </div>
+            )}
+            {step === 1 && (
+              <div className="space-y-4 px-4">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">Danh mục giải</div>
                   <Button size="sm" onClick={addPrize} className="gap-2">
                     <Plus className="h-4 w-4" />
-                    Thêm giải thưởng
+                    Thêm giải
                   </Button>
                 </div>
                 <ScrollArea className="h-[360px] rounded-md border">
@@ -1276,12 +1417,17 @@ export default function ProgramPage() {
                     <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                       <TableRow className="[&>th]:h-10 [&>th]:px-3">
                         <TableHead className="w-10 text-center">#</TableHead>
-                        <TableHead className="min-w-[220px]">Tên</TableHead>
-                        <TableHead className="min-w-[260px]">
+                        <TableHead className="min-w-[220px]">
+                          Tên giải
+                        </TableHead>
+                        <TableHead className="min-w-[220px]">
+                          Giải thưởng
+                        </TableHead>
+                        <TableHead className="min-w-[100px]">
                           Hình ảnh
                         </TableHead>
                         <TableHead className="w-[120px] text-right">
-                          Tồn kho
+                          Số lượng giải
                         </TableHead>
                         <TableHead className="min-w-[160px]">Ghi chú</TableHead>
                         <TableHead className="w-[90px] text-right">
@@ -1301,6 +1447,14 @@ export default function ProgramPage() {
                               value={pr.name}
                               onChange={(e) =>
                                 updatePrize(i, { name: e.target.value })
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={pr.prizeName}
+                              onChange={(e) =>
+                                updatePrize(i, { prizeName: e.target.value })
                               }
                             />
                           </TableCell>
@@ -1401,7 +1555,8 @@ export default function ProgramPage() {
                             />
                           </TableCell>
                           <TableCell>
-                            <Input
+                            <Textarea
+                              className="min-h-[38px]"
                               value={pr.note || ""}
                               onChange={(e) =>
                                 updatePrize(i, { note: e.target.value })
@@ -1410,7 +1565,7 @@ export default function ProgramPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <ActionIcon
-                              label="Delete"
+                              label="Xoá"
                               onClick={() => removePrize(i)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1423,448 +1578,957 @@ export default function ProgramPage() {
                       )}
                     </TableBody>
                   </Table>
+                  <ScrollBar orientation="horizontal" />
                 </ScrollArea>
-              </TabsContent>
-
-              <TabsContent value="normal" className="space-y-6 pt-4">
+              </div>
+            )}
+            {step === 2 && (
+              <div className="space-y-4 px-4">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium">Giải chung</div>
-                  <Button size="sm" onClick={addNormalPrize} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Thêm
-                  </Button>
+                  <div className="font-medium">Hình ảnh chương trình</div>
+                  <div className="text-xs text-muted-foreground">
+                    PNG/JPG/WebP • ≤ 2MB
+                  </div>
                 </div>
-                <ScrollArea className="h-[490px] rounded-md border">
-                  <Table className="text-sm">
-                    <TableHeader className="sticky top-0 bg-background">
-                      <TableRow className="[&>th]:h-10 [&>th]:px-3">
-                        <TableHead className="w-10 text-center">#</TableHead>
-                        <TableHead>Giải thưởng</TableHead>
-                        <TableHead className="w-[140px] text-right">
-                          Số lượng
-                        </TableHead>
-                        <TableHead className="w-[140px] text-right">
-                          Số nhỏ nhất
-                        </TableHead>
-                        <TableHead className="w-[140px] text-right">
-                          Số lớn nhất
-                        </TableHead>
-                        <TableHead className="w-[180px] text-right">
-                          Lượt quay mặc định
-                        </TableHead>
-                        <TableHead className="w-[90px] text-right">
-                          Hành động
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                      {activeProgram.normalPrizes.map((np, i) => (
-                        <TableRow
-                          key={`${np.prizeId}-${i}`}
-                          className="hover:bg-muted/50 transition-colors [&>td]:px-3 [&>td]:py-2"
-                        >
-                          <TableCell className="text-center">{i + 1}</TableCell>
-                          <TableCell>
-                            <Select
-                              value={np.prizeId}
-                              onValueChange={(v) =>
-                                updateNormalPrize(i, { prizeId: v })
-                              }
-                            >
-                              <SelectTrigger className="w-[260px]">
-                                <SelectValue placeholder="Chọn giải thưởng" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectGroup>
-                                  {activeProgram.prizes.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                      {p.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              className="text-right"
-                              type="number"
-                              value={np.quantity}
-                              onChange={(e) =>
-                                updateNormalPrize(i, {
-                                  quantity: Number(e.target.value) || 1,
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              className="text-right"
-                              type="number"
-                              value={np.min}
-                              onChange={(e) =>
-                                updateNormalPrize(i, {
-                                  min: Number(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              className="text-right"
-                              type="number"
-                              value={np.max}
-                              onChange={(e) =>
-                                updateNormalPrize(i, {
-                                  max: Number(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              className="text-right"
-                              type="number"
-                              value={np.defaultDrawsPerNumber}
-                              onChange={(e) =>
-                                updateNormalPrize(i, {
-                                  defaultDrawsPerNumber:
-                                    Number(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ActionIcon
-                              label="Delete"
-                              onClick={() => removeNormalPrize(i)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </ActionIcon>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {activeProgram.normalPrizes.length === 0 && (
-                        <TableEmpty colSpan={7}>
-                          Không có giải thưởng
-                        </TableEmpty>
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </TabsContent>
 
-              <TabsContent value="specials" className="space-y-4 pt-4">
+                <Tabs defaultValue="zalo" className="w-full">
+                  <TabsList className="rounded-xl bg-muted/40 p-1">
+                    <TabsTrigger value="zalo" className="rounded-lg px-3 py-2">
+                      Zalo mini app
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="landing"
+                      className="rounded-lg px-3 py-2"
+                    >
+                      Landing Page
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Zalo mini app */}
+                  <TabsContent value="zalo" className="space-y-4 pt-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <ImageField
+                        label="Banner"
+                        hint="Tỉ lệ 3:1 • gợi ý 1500×500"
+                        value={activeProgram?.zalo?.banner || ""}
+                        onChange={async (file) =>
+                          setActiveProgramPatch({
+                            zalo: {
+                              ...(activeProgram?.zalo || {}),
+                              banner: await fileToDataUrl(file),
+                            },
+                          })
+                        }
+                        onClear={() =>
+                          setActiveProgramPatch({
+                            zalo: {
+                              ...(activeProgram?.zalo || {}),
+                              banner: "",
+                            },
+                          })
+                        }
+                      />
+
+                      <ImageField
+                        label="Thumbnail"
+                        hint="Tỉ lệ 1:1 • gợi ý 600×600"
+                        value={activeProgram?.zalo?.thumb || ""}
+                        onChange={async (file) =>
+                          setActiveProgramPatch({
+                            zalo: {
+                              ...(activeProgram?.zalo || {}),
+                              thumb: await fileToDataUrl(file),
+                            },
+                          })
+                        }
+                        onClear={() =>
+                          setActiveProgramPatch({
+                            zalo: {
+                              ...(activeProgram?.zalo || {}),
+                              thumb: "",
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  </TabsContent>
+
+                  {/* Landing Page */}
+                  <TabsContent value="landing" className="space-y-4 pt-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <ImageField
+                        label="Thumbnail (x2 size)"
+                        hint="Tỉ lệ 16:9 • gợi ý 2400×1350"
+                        value={activeProgram?.landing?.thumb || ""}
+                        onChange={async (file) =>
+                          setActiveProgramPatch({
+                            landing: {
+                              ...activeProgram.landing,
+                              thumb: await fileToDataUrl(file),
+                            },
+                          })
+                        }
+                        onClear={() =>
+                          setActiveProgramPatch({
+                            landing: {
+                              ...activeProgram.landing,
+                              thumb: "",
+                            },
+                          })
+                        }
+                      />
+
+                      <ImageField
+                        label="Background"
+                        hint="Full HD trở lên • gợi ý ≥ 1920×1080"
+                        value={activeProgram?.landing?.background || ""}
+                        onChange={async (file) =>
+                          setActiveProgramPatch({
+                            landing: {
+                              ...activeProgram.landing,
+                              background: await fileToDataUrl(file),
+                            },
+                          })
+                        }
+                        onClear={() =>
+                          setActiveProgramPatch({
+                            landing: {
+                              ...activeProgram.landing,
+                              background: "",
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+            {step === 3 && (
+              <div className="space-y-6 px-4">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium">Giải đặc biệt</div>
-                  <Button size="sm" onClick={addSpecial} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Thêm
-                  </Button>
+                  <div className="font-medium">Kịch bản chương trình</div>
+                  <Badge
+                    variant="secondary"
+                    className="rounded-md px-2.5 py-1 text-[11px]"
+                  >
+                    Thiết lập hình thức & dãy số
+                  </Badge>
                 </div>
-                <ScrollArea className="h-[490px] rounded-md border">
-                  <Table className="text-sm">
-                    <TableHeader className="sticky top-0 bg-background">
-                      <TableRow className="[&>th]:h-10 [&>th]:px-3">
-                        <TableHead className="w-10 text-center">#</TableHead>
-                        <TableHead className="w-[120px] text-right">
-                          Số đặc biệt
-                        </TableHead>
-                        <TableHead className="min-w-[260px]">
-                          Giải thưởng
-                        </TableHead>
-                        <TableHead className="min-w-[160px]">
-                          Số lượng
-                        </TableHead>
-                        <TableHead className="min-w-[160px]">
-                          Số lượt quay
-                        </TableHead>
-                        <TableHead className="w-[90px] text-right">
-                          Hành động
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                      {activeProgram.specialNumbers.map((s, i) => (
-                        <TableRow
-                          key={`${s.value}-${i}`}
-                          className="hover:bg-muted/50 transition-colors [&>td]:px-3 [&>td]:py-2"
-                        >
-                          <TableCell className="text-center">{i + 1}</TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              className="text-right"
-                              type="number"
-                              value={s.value}
-                              onChange={(e) =>
-                                updateSpecial(i, {
-                                  value: Number(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Select
-                                value={s.prizeId ?? "none"}
-                                onValueChange={(v) =>
-                                  updateSpecial(i, {
-                                    prizeId: v === "none" ? undefined : v,
-                                  })
-                                }
-                              >
-                                <SelectTrigger className="w-[240px]">
-                                  <SelectValue placeholder="Catalog prize" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectGroup>
-                                    <SelectItem value="none">—</SelectItem>
-                                    {activeProgram.prizes.map((p) => (
-                                      <SelectItem key={p.id} value={p.id}>
-                                        {p.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                </SelectContent>
-                              </Select>
+
+                <Card className="border-muted/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">
+                      Hình thức quay thưởng
+                    </CardTitle>
+                    <CardDescription>Áp dụng cho Landing Page</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {[
+                        {
+                          id: "cage",
+                          label: "Quay lồng cầu",
+                          desc: "Trải nghiệm sự kiện trực tiếp",
+                        },
+                        {
+                          id: "online",
+                          label: "Quay online",
+                          desc: "Tự động trên web/app",
+                        },
+                      ].map((opt) => {
+                        const checked =
+                          (activeProgram.scenario?.drawType ?? "online") ===
+                          opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() =>
+                              setActiveProgramPatch({
+                                scenario: {
+                                  ...(activeProgram.scenario ?? {}),
+                                  drawType: opt.id as "cage" | "online",
+                                },
+                              })
+                            }
+                            className={cn(
+                              "group flex items-start gap-3 rounded-lg border p-3 text-left transition",
+                              checked
+                                ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+                                : "hover:bg-muted/40"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "grid h-5 w-5 place-items-center rounded-full border transition",
+                                checked
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "border-muted-foreground/30 text-muted-foreground"
+                              )}
+                            >
+                              <Check className="h-3.5 w-3.5" />
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              className="text-right"
-                              type="number"
-                              value={s.number}
-                              onChange={(e) =>
-                                updateSpecial(i, {
-                                  number: Number(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              className="text-right"
-                              type="number"
-                              value={s.draws}
-                              onChange={(e) =>
-                                updateSpecial(i, {
-                                  draws: Number(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ActionIcon
-                              label="Delete"
-                              onClick={() => removeSpecial(i)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </ActionIcon>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {activeProgram.specialNumbers.length === 0 && (
-                        <TableEmpty colSpan={6}>
-                          Không có số đặc biệt
-                        </TableEmpty>
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </TabsContent>
+                            <div className="min-w-0">
+                              <div
+                                className={cn(
+                                  "text-sm",
+                                  checked ? "font-medium" : "text-foreground"
+                                )}
+                              >
+                                {opt.label}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {opt.desc}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <TabsContent value="customers" className="space-y-4 pt-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Tải lên CSV</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={onDropCsv}
-                        onClick={() => fileRef.current?.click()}
-                        className="group cursor-pointer rounded-xl border border-dashed bg-muted/40 px-4 py-6 text-center transition hover:bg-muted/60"
-                      >
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-background ring-1 ring-border transition group-hover:scale-105">
-                          <Upload className="h-5 w-5" />
-                        </div>
-                        <div className="mt-3 font-medium">
-                          Kéo & thả tệp vào đây
-                        </div>
+                <Card className="border-muted/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Dãy số may mắn</CardTitle>
+                    <CardDescription>
+                      Phạm vi A→B và số lần lặp cho mỗi số
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="space-y-1">
                         <div className="text-xs text-muted-foreground">
-                          hoặc nhấn để chọn .csv / .txt
+                          Từ (A)
                         </div>
-                        <Input
-                          ref={fileRef}
-                          type="file"
-                          accept=".csv,.txt"
-                          className="hidden"
-                          onChange={(e) => handleCsvFiles(e.target.files)}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Thêm mới</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-6 gap-2">
-                        <div className="sm:col-span-2">
+                        <div className="relative">
                           <Input
-                            placeholder="Tên KH (tuỳ chọn)"
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                          />
-                        </div>
-                        <div className="sm:col-span-2">
-                          <Input
-                            placeholder="Số điện thoại"
-                            value={newPhone}
-                            onChange={(e) => setNewPhone(e.target.value)}
-                          />
-                        </div>
-                        <div className="sm:col-span-2">
-                          <Input
-                            placeholder="Số lượt quay"
                             type="number"
                             inputMode="numeric"
-                            value={newAttempts}
-                            onChange={(e) => setNewAttempts(e.target.value)}
+                            value={activeProgram.scenario?.range?.min ?? 0}
+                            onChange={(e) =>
+                              setActiveProgramPatch({
+                                scenario: {
+                                  ...(activeProgram.scenario ?? {}),
+                                  range: {
+                                    ...(activeProgram.scenario?.range ?? {}),
+                                    min: Number(e.target.value) || 0,
+                                  },
+                                },
+                              })
+                            }
+                            className="pr-10"
                           />
+                          <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
+                            A
+                          </span>
                         </div>
                       </div>
+
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">
+                          Đến (B)
+                        </div>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            value={activeProgram.scenario?.range?.max ?? 0}
+                            onChange={(e) =>
+                              setActiveProgramPatch({
+                                scenario: {
+                                  ...(activeProgram.scenario ?? {}),
+                                  range: {
+                                    ...(activeProgram.scenario?.range ?? {}),
+                                    max: Number(e.target.value) || 0,
+                                  },
+                                },
+                              })
+                            }
+                            className="pr-10"
+                          />
+                          <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
+                            B
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">
+                          Số lần lặp
+                        </div>
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          value={activeProgram.scenario?.range?.repeat ?? 1}
+                          onChange={(e) =>
+                            setActiveProgramPatch({
+                              scenario: {
+                                ...(activeProgram.scenario ?? {}),
+                                range: {
+                                  ...(activeProgram.scenario?.range ?? {}),
+                                  repeat: Math.max(
+                                    1,
+                                    Number(e.target.value) || 1
+                                  ),
+                                },
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <Badge variant="secondary">
+                        Tổng lượt dãy:{" "}
+                        {Math.max(
+                          0,
+                          (activeProgram.scenario?.range?.max ?? 0) -
+                            (activeProgram.scenario?.range?.min ?? 0) +
+                            1
+                        ) *
+                          Math.max(
+                            1,
+                            activeProgram.scenario?.range?.repeat ?? 1
+                          )}
+                      </Badge>
+                      {(activeProgram.scenario?.range?.min ?? 0) >
+                        (activeProgram.scenario?.range?.max ?? 0) && (
+                        <span className="rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700 ring-1 ring-amber-200">
+                          Lưu ý: A nên ≤ B
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-muted/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Số lẻ may mắn</CardTitle>
+                    <CardDescription>
+                      Thêm số ngoài dãy A→B, thiết lập lặp & giải thưởng
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-muted-foreground">
+                        Danh sách số lẻ
+                      </div>
                       <Button
-                        className="w-full gap-2"
-                        onClick={addOneCustomer}
-                        disabled={!canAdd}
+                        size="sm"
+                        className="gap-2"
+                        onClick={() =>
+                          setActiveProgramPatch({
+                            scenario: {
+                              ...(activeProgram.scenario ?? {}),
+                              singles: [
+                                ...((activeProgram.scenario
+                                  ?.singles as any[]) ?? []),
+                                { value: 0, repeat: 1, prizeId: "" },
+                              ],
+                            },
+                          })
+                        }
                       >
                         <Plus className="h-4 w-4" />
-                        Thêm khách hàng
+                        Thêm số
                       </Button>
+                    </div>
+
+                    <ScrollArea className="h-[300px] rounded-lg border">
+                      <Table className="text-sm">
+                        <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                          <TableRow className="[&>th]:h-9 [&>th]:px-3">
+                            <TableHead className="w-[120px] text-left">
+                              Số
+                            </TableHead>
+                            <TableHead className="w-[140px] text-left">
+                              Số lần lặp
+                            </TableHead>
+                            <TableHead>Giải thưởng</TableHead>
+                            <TableHead className="w-[92px] text-left">
+                              Hành động
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
+                          {(activeProgram.scenario?.singles ?? []).map(
+                            (row: any, idx: number) => {
+                              const min =
+                                activeProgram.scenario?.range?.min ?? 0;
+                              const max =
+                                activeProgram.scenario?.range?.max ?? 0;
+                              const inRange =
+                                row.value >= min && row.value <= max;
+
+                              return (
+                                <TableRow
+                                  key={idx}
+                                  className="[&>td]:px-3 [&>td]:py-2"
+                                >
+                                  <TableCell className="text-right">
+                                    <Input
+                                      type="number"
+                                      inputMode="numeric"
+                                      value={row.value}
+                                      onChange={(e) => {
+                                        const v = Number(e.target.value) || 0;
+                                        const next = (
+                                          activeProgram.scenario?.singles ?? []
+                                        ).map((x: any, i: number) =>
+                                          i === idx ? { ...x, value: v } : x
+                                        );
+                                        setActiveProgramPatch({
+                                          scenario: {
+                                            ...(activeProgram.scenario ?? {}),
+                                            singles: next,
+                                          },
+                                        });
+                                      }}
+                                      className={cn(
+                                        inRange && "border-amber-400"
+                                      )}
+                                    />
+                                    {inRange && (
+                                      <div className="mt-1 text-[10px] text-amber-600">
+                                        Số này trùng dãy A→B
+                                      </div>
+                                    )}
+                                  </TableCell>
+
+                                  <TableCell className="text-right">
+                                    <Input
+                                      type="number"
+                                      inputMode="numeric"
+                                      value={row.repeat ?? 1}
+                                      onChange={(e) => {
+                                        const v = Math.max(
+                                          1,
+                                          Number(e.target.value) || 1
+                                        );
+                                        const next = (
+                                          activeProgram.scenario?.singles ?? []
+                                        ).map((x: any, i: number) =>
+                                          i === idx ? { ...x, repeat: v } : x
+                                        );
+                                        setActiveProgramPatch({
+                                          scenario: {
+                                            ...(activeProgram.scenario ?? {}),
+                                            singles: next,
+                                          },
+                                        });
+                                      }}
+                                    />
+                                  </TableCell>
+
+                                  <TableCell>
+                                    <Select
+                                      value={row.prizeId ?? ""}
+                                      onValueChange={(val) => {
+                                        const next = (
+                                          activeProgram.scenario?.singles ?? []
+                                        ).map((x: any, i: number) =>
+                                          i === idx ? { ...x, prizeId: val } : x
+                                        );
+                                        setActiveProgramPatch({
+                                          scenario: {
+                                            ...(activeProgram.scenario ?? {}),
+                                            singles: next,
+                                          },
+                                        });
+                                      }}
+                                    >
+                                      <SelectTrigger className="w-[260px]">
+                                        <SelectValue placeholder="Chọn giải thưởng" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectGroup>
+                                          {activeProgram.prizes.map((p) => (
+                                            <SelectItem key={p.id} value={p.id}>
+                                              {p.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectGroup>
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
+
+                                  <TableCell className="text-right">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => {
+                                        const next = (
+                                          activeProgram.scenario?.singles ?? []
+                                        ).filter(
+                                          (_: any, i: number) => i !== idx
+                                        );
+                                        setActiveProgramPatch({
+                                          scenario: {
+                                            ...(activeProgram.scenario ?? {}),
+                                            singles: next,
+                                          },
+                                        });
+                                      }}
+                                      aria-label="Xoá"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            }
+                          )}
+
+                          {(activeProgram.scenario?.singles ?? []).length ===
+                            0 && (
+                            <TableRow>
+                              <TableCell
+                                colSpan={4}
+                                className="h-[72px] text-center text-sm text-muted-foreground"
+                              >
+                                Chưa có số lẻ may mắn
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                      <ScrollBar orientation="vertical" />
+                    </ScrollArea>
+
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <Badge variant="secondary">
+                        Tổng lượt dãy:{" "}
+                        {Math.max(
+                          0,
+                          (activeProgram.scenario?.range?.max ?? 0) -
+                            (activeProgram.scenario?.range?.min ?? 0) +
+                            1
+                        ) *
+                          Math.max(
+                            1,
+                            activeProgram.scenario?.range?.repeat ?? 1
+                          )}
+                      </Badge>
+                      <Badge>
+                        Số lẻ: {(activeProgram.scenario?.singles ?? []).length}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            {step === 4 && (
+              <div className="space-y-6 px-4">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">Khách hàng</div>
+                  <div className="text-xs text-muted-foreground">
+                    Thông tin khách hàng tham gia chương trình
+                  </div>
+                </div>
+
+                {/* DANH SÁCH KHÁCH HÀNG + DRAG & DROP + LỊCH SỬ */}
+                <Card className="border-muted/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">
+                      Danh sách khách hàng
+                    </CardTitle>
+                    <CardDescription>
+                      Kéo-thả để sắp xếp ưu tiên
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Thêm nhanh */}
+                    <div className="rounded-lg border bg-muted/30 p-3">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-12">
+                        <Input
+                          className="sm:col-span-3"
+                          placeholder="Tên KH"
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                        />
+                        <Input
+                          className="sm:col-span-3"
+                          placeholder="Số điện thoại"
+                          value={newPhone}
+                          onChange={(e) => setNewPhone(e.target.value)}
+                        />
+                        <Input
+                          className="sm:col-span-3"
+                          placeholder="Mã khách hàng"
+                        />
+                        <Input
+                          className="sm:col-span-2"
+                          placeholder="Số lượt quay"
+                          type="number"
+                          inputMode="numeric"
+                          value={newAttempts}
+                          onChange={(e) => setNewAttempts(e.target.value)}
+                        />
+                        <Button
+                          className="sm:col-span-1"
+                          onClick={addOneCustomer}
+                          disabled={!canAdd}
+                        >
+                          Thêm
+                        </Button>
+                      </div>
                       {!canAdd && newPhone.length > 0 && (
-                        <div className="text-xs text-destructive">
+                        <div className="mt-1 text-xs text-destructive">
                           Số điện thoại không hợp lệ
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                </div>
+                    </div>
 
-                <div className="rounded-lg border bg-background p-3">
-                  <div className="text-xs font-medium mb-2">
-                    Định dạng hỗ trợ
-                  </div>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• Tên khách hàng, Số điện thoại, Số lượt quay</li>
-                    <li>• Hoặc: Số điện thoại, Số lượt quay</li>
-                    <li>• Hoặc: Số điện thoại (mặc định 0 lượt)</li>
-                  </ul>
-                  <div className="mt-2 grid grid-cols-1 gap-1 rounded-md bg-muted/40 p-2 text-xs font-mono">
-                    <code>Nguyen Van A,0901234567,2</code>
-                    <code>0901234567,2</code>
-                    <code>0901234567</code>
-                  </div>
-                  <div className="mt-2 text-[11px] text-muted-foreground">
-                    Phân tách bằng dấu phẩy, chấm phẩy hoặc tab. Mã hóa UTF-8.
-                  </div>
-                </div>
+                    {/* Import / Export */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileRef.current?.click()}
+                      >
+                        Tải CSV
+                      </Button>
+                      <Input
+                        ref={fileRef}
+                        type="file"
+                        accept=".csv,.txt"
+                        className="hidden"
+                        onChange={(e) => handleCsvFiles(e.target.files)}
+                      />
+                      <Button variant="outline" size="sm" onClick={exportJson}>
+                        Xuất JSON
+                      </Button>
+                      <div className="ml-auto text-xs text-muted-foreground">
+                        Kéo icon để sắp xếp. Nhấn đồng hồ để xem lịch sử.
+                      </div>
+                    </div>
 
-                <Separator />
+                    {/* Bảng với drag handle + history dialog */}
+                    <DndContext
+                      collisionDetection={closestCenter}
+                      onDragEnd={({ active, over }) => {
+                        if (!over || active.id === over.id) return;
+                        const oldIndex = customers.findIndex(
+                          (c) => String(c.index) === String(active.id)
+                        );
+                        const newIndex = customers.findIndex(
+                          (c) => String(c.index) === String(over.id)
+                        );
+                        const next = arrayMove(
+                          customers,
+                          oldIndex,
+                          newIndex
+                        ).map((c, i) => ({ ...c, index: i + 1 }));
+                        setCustomers(next);
+                      }}
+                    >
+                      <ScrollArea className="h-[360px] rounded-md border">
+                        <Table className="text-sm">
+                          <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                            <TableRow className="[&>th]:h-10 [&>th]:px-3">
+                              <TableHead className="w-6"></TableHead>
+                              <TableHead className="w-10 text-center">
+                                #
+                              </TableHead>
+                              <TableHead className="min-w-[180px]">
+                                Tên khách hàng
+                              </TableHead>
+                              <TableHead className="min-w-[160px]">
+                                Số điện thoại
+                              </TableHead>
+                              <TableHead className="min-w-[140px]">
+                                Mã KH
+                              </TableHead>
+                              <TableHead className="w-[120px] text-right">
+                                Số lượt quay
+                              </TableHead>
+                              <TableHead className="w-[130px] text-right">
+                                Hành động
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
 
-                <ScrollArea className="h-[360px] rounded-md border">
-                  <Table className="text-sm">
-                    <TableHeader>
-                      <TableRow className="[&>th]:h-10 [&>th]:px-3">
-                        <TableHead className="w-10 text-center">#</TableHead>
-                        <TableHead>Tên khách hàng</TableHead>
-                        <TableHead>Số điện thoại</TableHead>
-                        <TableHead className="w-[140px] text-right">
-                          Số lượt quay
-                        </TableHead>
-                        <TableHead className="w-[90px] text-right">
-                          Hành động
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                      {customers.map((c, i) => (
-                        <TableRow
-                          key={i}
-                          className="hover:bg-muted/50 transition-colors [&>td]:px-3 [&>td]:py-2"
-                        >
-                          <TableCell className="text-center">{i + 1}</TableCell>
-                          <TableCell className="font-medium">
-                            <Input
-                              value={c.name}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setCustomers((prev) =>
-                                  prev.map((r, idx) =>
-                                    idx === i ? { ...r, name: v } : r
-                                  )
-                                );
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            <Input
-                              value={c.phone}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setCustomers((prev) =>
-                                  prev.map((r, idx) =>
-                                    idx === i ? { ...r, phone: v } : r
-                                  )
-                                );
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              className="text-right"
-                              type="number"
-                              value={c.attempts}
-                              onChange={(e) => {
-                                const v = Number(e.target.value);
-                                setCustomers((prev) =>
-                                  prev.map((r, idx) =>
-                                    idx === i
-                                      ? {
-                                          ...r,
-                                          attempts: Number.isFinite(v) ? v : 0,
+                          <SortableContext
+                            items={customers.map((c) => String(c.index))}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
+                              {customers.map((c, i) => (
+                                <SortableRow key={c.index} id={String(c.index)}>
+                                  <TableCell className="px-3 py-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="cursor-grab active:cursor-grabbing"
+                                      {...useSortableHandle(String(c.index))}
+                                      aria-label="Kéo để sắp xếp"
+                                    >
+                                      <GripVertical className="h-4 w-4" />
+                                    </Button>
+                                  </TableCell>
+
+                                  <TableCell className="text-center px-3 py-2">
+                                    {i + 1}
+                                  </TableCell>
+
+                                  <TableCell className="px-3 py-2">
+                                    <Input
+                                      value={c.name ?? ""}
+                                      onChange={(e) =>
+                                        setCustomers((prev) =>
+                                          prev.map((r, idx) =>
+                                            idx === i
+                                              ? { ...r, name: e.target.value }
+                                              : r
+                                          )
+                                        )
+                                      }
+                                    />
+                                  </TableCell>
+
+                                  <TableCell className="px-3 py-2">
+                                    <Input
+                                      value={c.phone}
+                                      onChange={(e) =>
+                                        setCustomers((prev) =>
+                                          prev.map((r, idx) =>
+                                            idx === i
+                                              ? { ...r, phone: e.target.value }
+                                              : r
+                                          )
+                                        )
+                                      }
+                                    />
+                                  </TableCell>
+
+                                  <TableCell className="px-3 py-2">
+                                    <Input
+                                      value={(c as any).customerCode ?? ""}
+                                      onChange={(e) =>
+                                        setCustomers((prev) =>
+                                          prev.map((r, idx) =>
+                                            idx === i
+                                              ? ({
+                                                  ...r,
+                                                  customerCode: e.target.value,
+                                                } as any)
+                                              : r
+                                          )
+                                        )
+                                      }
+                                    />
+                                  </TableCell>
+
+                                  <TableCell className="px-3 py-2 text-right">
+                                    <Input
+                                      className="text-right"
+                                      type="number"
+                                      value={c.attempts}
+                                      onChange={(e) => {
+                                        const v = Number(e.target.value);
+                                        setCustomers((prev) =>
+                                          prev.map((r, idx) =>
+                                            idx === i
+                                              ? {
+                                                  ...r,
+                                                  attempts: Number.isFinite(v)
+                                                    ? v
+                                                    : 0,
+                                                }
+                                              : r
+                                          )
+                                        );
+                                      }}
+                                    />
+                                  </TableCell>
+
+                                  <TableCell className="px-3 py-2 text-right">
+                                    <div className="flex justify-end gap-1.5">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => {
+                                          setHistoryOf(c);
+                                          setOpenHistory(true);
+                                        }}
+                                        aria-label="Xem lịch sử"
+                                      >
+                                        <Clock className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() =>
+                                          setCustomers((prev) =>
+                                            prev.filter((_, idx) => idx !== i)
+                                          )
                                         }
-                                      : r
+                                        aria-label="Xoá"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </SortableRow>
+                              ))}
+
+                              {customers.length === 0 && (
+                                <TableRow>
+                                  <TableCell
+                                    colSpan={7}
+                                    className="h-[72px] text-center text-sm text-muted-foreground"
+                                  >
+                                    Chưa có dữ liệu
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </SortableContext>
+                        </Table>
+                        <ScrollBar orientation="vertical" />
+                      </ScrollArea>
+                    </DndContext>
+                  </CardContent>
+                </Card>
+
+                {/* NHẮC NHỞ KHÁCH HÀNG */}
+                <Card className="border-muted/60">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">
+                      Nhắc nhở tham gia bốc số
+                    </CardTitle>
+                    <CardDescription>
+                      Thiết lập kênh & lịch gửi (UI minh hoạ)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 md:grid-cols-3">
+                    <Select
+                      value={activeProgram.reminder?.channel ?? "sms"}
+                      onValueChange={(v) =>
+                        setActiveProgramPatch({
+                          reminder: {
+                            ...(activeProgram.reminder ?? {}),
+                            channel: v as "sms" | "zalo" | "email",
+                          },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Kênh gửi" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sms">SMS</SelectItem>
+                        <SelectItem value="zalo">Zalo OA</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Input
+                      type="datetime-local"
+                      value={activeProgram.reminder?.sendAt ?? ""}
+                      onChange={(e) =>
+                        setActiveProgramPatch({
+                          reminder: {
+                            ...(activeProgram.reminder ?? {}),
+                            sendAt: e.target.value,
+                          },
+                        })
+                      }
+                    />
+
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={!!activeProgram.reminder?.enabled}
+                        onCheckedChange={(v) =>
+                          setActiveProgramPatch({
+                            reminder: {
+                              ...(activeProgram.reminder ?? {}),
+                              enabled: v,
+                            },
+                          })
+                        }
+                        id="reminder-enable"
+                      />
+                      <Label htmlFor="reminder-enable">Bật nhắc nhở</Label>
+                      <Button variant="outline" size="sm" className="ml-auto">
+                        Gửi thử
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* POPUP LỊCH SỬ */}
+                <Dialog open={openHistory} onOpenChange={setOpenHistory}>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Lịch sử khách hàng</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                      {historyOf ? (
+                        <>
+                          <div className="text-sm">
+                            <span className="font-medium">
+                              {historyOf.name ?? "Không tên"}
+                            </span>{" "}
+                            <span className="text-muted-foreground">
+                              ({historyOf.phone})
+                            </span>
+                          </div>
+                          <div className="rounded-md border">
+                            <Table className="text-sm">
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Thời gian</TableHead>
+                                  <TableHead>Hành động</TableHead>
+                                  <TableHead>Kết quả</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {(historyByPhone[historyOf.phone] ?? []).map(
+                                  (h: any, i: number) => (
+                                    <TableRow key={i}>
+                                      <TableCell className="whitespace-nowrap">
+                                        {h.at}
+                                      </TableCell>
+                                      <TableCell>{h.action}</TableCell>
+                                      <TableCell>{h.result ?? "—"}</TableCell>
+                                    </TableRow>
                                   )
-                                );
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ActionIcon
-                              label="Delete"
-                              onClick={() =>
-                                setCustomers((prev) =>
-                                  prev.filter((_, idx) => idx !== i)
-                                )
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </ActionIcon>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {customers.length === 0 && (
-                        <TableEmpty colSpan={4}>No data</TableEmpty>
+                                )}
+                                {(historyByPhone[historyOf.phone] ?? [])
+                                  .length === 0 && (
+                                  <TableRow>
+                                    <TableCell
+                                      colSpan={3}
+                                      className="text-center text-muted-foreground"
+                                    >
+                                      Chưa có lịch sử
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          Chưa chọn khách hàng
+                        </div>
                       )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={() => setOpenHistory(false)}>
+                        Đóng
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            )}
+          </Stepper>
         </Card>
         <Dialog
           open={previewImage !== null}

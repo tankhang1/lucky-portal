@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 const AuthPage = () => {
   const navigate = useNavigate();
   return (
-    <div className="flex max-h-screen items-center justify-center">
+    <div className="flex h-screen items-center justify-center">
       <Card className="w-3/4 min-w-[400px] max-w-md shadow-md border border-gray-200">
         <CardHeader>
           <img

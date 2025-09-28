@@ -49,46 +49,7 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-a {
-  font-weight: 500;
-  color: #1a1a1a;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #1a1a1a;
-}
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  background-color: rgb(238, 238, 238);
-}
-button:focus,
-button:focus-visible {
-
-}
 
 @media (prefers-color-scheme: light) {
   :root {
@@ -219,3 +180,15 @@ button:focus-visible {
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.527 0.154 150.069);
 }
+
+.jodit-wysiwyg ul {
+  list-style-type: disc;
+  padding-left: 1.5rem; /* để có khoảng cách */
+}
+.jodit-wysiwyg ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+}
+.richtext ul { list-style-type: disc; list-style-position: outside; padding-left: 1.5rem; margin: .5rem 0; }
+.richtext ol { list-style-type: decimal; list-style-position: outside; padding-left: 1.5rem; margin: .5rem 0; }
+.richtext li { margin: .25rem 0; }
