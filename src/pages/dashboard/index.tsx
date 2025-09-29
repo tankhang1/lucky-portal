@@ -57,7 +57,9 @@ import {
   CartesianGrid,
   BarChart,
   Bar,
+  LabelList,
 } from "recharts";
+import { Tooltip } from "@/components/ui/tooltip";
 
 // ---------------- Mock data helpers ----------------
 const phones = ["090", "091", "092", "093", "094", "096", "097", "098", "099"];
@@ -385,15 +387,43 @@ export default function DashboardPage() {
                 data={prizeSummary.map(([k, v]) => ({ name: k, value: v }))}
                 margin={{ left: 8, right: 8, top: 10, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <defs>
+                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="green" stopOpacity="0.95" />
+                    <stop offset="100%" stopColor="white" stopOpacity="0.55" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeOpacity={0.25} vertical={false} />
                 <XAxis
                   dataKey="name"
                   tickFormatter={(v) => String(v).slice(0, 8)}
+                  tickMargin={8}
+                  height={28}
+                  tickLine={false}
+                  axisLine={false}
                   fontSize={12}
                 />
-                <YAxis allowDecimals={false} fontSize={12} />
-                <RTooltip />
-                <Bar dataKey="value" />
+                <YAxis
+                  allowDecimals={false}
+                  width={34}
+                  tickLine={false}
+                  axisLine={false}
+                  fontSize={12}
+                />
+                <RTooltip content={<Tooltip />} />
+                <Bar
+                  dataKey="value"
+                  radius={[8, 8, 0, 0]}
+                  fill="url(#barGradient)"
+                  maxBarSize={38}
+                >
+                  <LabelList
+                    dataKey="value"
+                    position="top"
+                    className={cn("fill-foreground text-[11px]")}
+                    formatter={(v: number) => (v > 0 ? v : "")}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
