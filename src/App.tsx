@@ -13,7 +13,8 @@ function App() {
       <Route path="/" element={<Navigate to="/auth" replace />} />
       <Route index path="/auth" element={<AuthPage />} />
       <Route path="/main" element={<MainPage />}>
-        <Route index path="program" element={<ProgramPage />} />
+        <Route index element={<Navigate to="program" replace />} />
+        <Route path="program" element={<ProgramPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="*" element={<ErrorPage />} />
