@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
 import AuthPage from "./pages/auth";
 import ErrorPage from "./pages/error";
@@ -10,6 +10,7 @@ import DashboardPage from "./pages/dashboard";
 function App() {
   return (
     <Routes>
+      <Route path="/" element={<Navigate to="/auth" replace />} />
       <Route index path="/auth" element={<AuthPage />} />
       <Route path="/main" element={<MainPage />}>
         <Route index path="program" element={<ProgramPage />} />
