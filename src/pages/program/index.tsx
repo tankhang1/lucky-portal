@@ -78,6 +78,7 @@ import {
 import { SortableRow, useSortableHandle } from "@/components/sortable-row";
 import { Switch } from "@/components/ui/switch";
 import ActionIcon from "@/components/action-icon";
+import InfoSection from "./components/Info";
 const fileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -868,82 +869,85 @@ export default function ProgramPage() {
                   return (
                     <div
                       key={p.id}
-                      className={`rounded-lg border p-3 transition-colors ${
-                        active
-                          ? "shadow-sm border-primary/30 bg-background"
-                          : "hover:bg-muted/30"
-                      }`}
+                      onClick={() => setActiveId(p.id)}
+                      className={`
+    group grid grid-cols-[64px_1fr_auto] items-center gap-3 rounded-xl border p-3 transition-colors cursor-pointer
+    ${active ? "border-primary bg-background" : "hover:bg-muted/30"}
+  `}
                     >
-                      <div className="flex flex-col items-start gap-3">
-                        <div className="flex items-start justify-between gap-3 w-full">
-                          <div className="h-12 w-16 overflow-hidden rounded-md ring-1 ring-border bg-muted/30">
-                            {p.image ? (
-                              <img
-                                src={p.image}
-                                alt=""
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-full w-full grid place-content-center text-[10px] text-muted-foreground">
-                                <ImageIcon className="h-3 w-3 mr-1" />
-                                Ảnh
-                              </div>
-                            )}
+                      <div className="h-16 w-16 overflow-hidden rounded-lg ring-1 ring-border bg-muted/20">
+                        {p.image ? (
+                          <img
+                            src={p.image}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-full w-full grid place-content-center text-[10px] text-muted-foreground">
+                            <ImageIcon className="h-3 w-3 mr-1" />
+                            Ảnh
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <IconDotsVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setActiveId(p.id);
-                                  duplicateProgram(p.id);
-                                }}
-                                className="flex items-center gap-2"
-                              >
-                                <Copy className="h-4 w-4" />
-                                Sao chép
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setActiveId(p.id)}
-                                className="flex items-center gap-2"
-                              >
-                                <Pencil className="h-4 w-4" />
-                                Chỉnh sửa
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => deleteProgram(p.id)}
-                                className="flex items-center gap-2 text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Xoá
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium line-clamp-1">
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center flex-wrap gap-2">
+                          <div className="font-medium truncate">
                             {p.programName}
                           </div>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                            <Badge
-                              variant={p.enabled ? "default" : "secondary"}
-                            >
-                              {p.enabled ? "Bật" : "Tắt"}
-                            </Badge>
-                            <span>Giải: {p.prizes.length}</span>
-                            <span>Đặc biệt: {p.specialNumbers.length}</span>
-                          </div>
-                          {p.shortSummary ? (
-                            <div className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                              {p.shortSummary}
-                            </div>
+                          {p.programCode ? (
+                            <span className="text-[11px] text-muted-foreground">
+                              • {p.programCode}
+                            </span>
                           ) : null}
                         </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                          <Badge variant={p.enabled ? "default" : "secondary"}>
+                            {p.enabled ? "Bật" : "Tắt"}
+                          </Badge>
+                          <span>Giải: {p.prizes.length}</span>
+                          <span>Đặc biệt: {p.specialNumbers.length}</span>
+                        </div>
                       </div>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0"
+                            aria-label="Mở thao tác"
+                          >
+                            <IconDotsVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" sideOffset={6}>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setActiveId(p.id);
+                              duplicateProgram(p.id);
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Copy className="h-4 w-4" />
+                            Sao chép
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setActiveId(p.id)}
+                            className="flex items-center gap-2"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Chỉnh sửa
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => deleteProgram(p.id)}
+                            className="flex items-center gap-2 text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Xoá
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   );
                 })}
@@ -973,361 +977,11 @@ export default function ProgramPage() {
             value={step}
           >
             {step === 0 && (
-              <div>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex items-start gap-4">
-                      <div
-                        className="relative group"
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={async (e) => {
-                          e.preventDefault();
-                          const f = e.dataTransfer.files?.[0];
-                          if (!f || !f.type.startsWith("image/")) return;
-                          if (f.size > 2 * 1024 * 1024) {
-                            alert("Vui lòng chọn ảnh ≤ 2MB");
-                            return;
-                          }
-                          setActiveProgramPatch({
-                            image: await fileToDataUrl(f),
-                          });
-                        }}
-                      >
-                        <div className="h-20 w-28 overflow-hidden rounded-xl ring-1 ring-border bg-gradient-to-br from-muted/60 to-muted/20">
-                          {activeProgram.image ? (
-                            <img
-                              src={activeProgram.image}
-                              alt=""
-                              className="h-full w-full object-cover transition group-hover:scale-[1.02]"
-                            />
-                          ) : (
-                            <div className="h-full w-full grid place-content-center text-[10px] text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <ImageIcon className="h-3 w-3" />
-                                Ảnh chương trình
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              size="icon"
-                              variant="secondary"
-                              className="absolute right-1 top-1 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 transition"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" sideOffset={6}>
-                            <DropdownMenuItem
-                              className="flex items-center gap-2"
-                              onClick={() =>
-                                document
-                                  .getElementById("program-image-input")
-                                  ?.click()
-                              }
-                            >
-                              <Upload className="h-4 w-4" />
-                              Tải ảnh mới
-                            </DropdownMenuItem>
-                            {activeProgram.image && (
-                              <DropdownMenuItem
-                                className="flex items-center gap-2"
-                                onClick={() =>
-                                  setPreviewImage(activeProgram.image!)
-                                }
-                              >
-                                <Eye className="h-4 w-4" />
-                                Xem lớn
-                              </DropdownMenuItem>
-                            )}
-                            {activeProgram.image && (
-                              <DropdownMenuItem
-                                className="flex items-center gap-2 text-red-600"
-                                onClick={() =>
-                                  setActiveProgramPatch({ image: "" })
-                                }
-                              >
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                                Xoá ảnh
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <input
-                          id="program-image-input"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const f = e.target.files?.[0];
-                            if (!f) return;
-                            if (f.size > 2 * 1024 * 1024) {
-                              alert("Vui lòng chọn ảnh ≤ 2MB");
-                              return;
-                            }
-                            setActiveProgramPatch({
-                              image: await fileToDataUrl(f),
-                            });
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-2 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={activeProgram.programCode || ""}
-                            onChange={(e) =>
-                              setActiveProgramPatch({
-                                programCode: e.target.value,
-                              })
-                            }
-                            placeholder="Mã chương trình"
-                            className="max-w-36 uppercase font-medium"
-                          />
-                          <span
-                            onClick={() =>
-                              setActiveProgramPatch({
-                                enabled: !activeProgram.enabled,
-                              })
-                            }
-                            className={`shrink-0 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] cursor-pointer ${
-                              activeProgram.enabled
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                : "bg-neutral-50 border-neutral-200 text-neutral-600"
-                            }`}
-                          >
-                            {activeProgram.enabled ? "Đang bật" : "Đang tắt"}
-                            <IconTransferVertical size={14} />
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          <Input
-                            value={activeProgram.programName}
-                            onChange={(e) =>
-                              setActiveProgramPatch({
-                                programName: e.target.value,
-                              })
-                            }
-                            className="max-w-72"
-                            placeholder="Tên chương trình"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-
-                <CardContent className="space-y-6">
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    <Card className="border-dashed">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <Info className="h-4 w-4" />
-                          Thông tin chương trình
-                        </CardTitle>
-                        <CardDescription>
-                          Mô tả ngắn và quy tắc tham gia
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium">Khẩu hiệu</div>
-                          <Input
-                            value={activeProgram.slogan}
-                            onChange={(e) =>
-                              setActiveProgramPatch({ slogan: e.target.value })
-                            }
-                            placeholder="Khẩu hiệu ngắn gọn (tối đa 60 ký tự)"
-                            maxLength={60}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium">Thời gian</div>
-                          <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground">
-                              Thời gian bắt đầu và kết thúc chương trình
-                            </div>
-                            <div className="grid gap-3 md:grid-cols-2">
-                              <div className="space-y-1">
-                                <div className="text-xs text-muted-foreground">
-                                  Bắt đầu
-                                </div>
-                                <Input
-                                  type="datetime-local"
-                                  value={activeProgram.startedAt}
-                                  onChange={(e) =>
-                                    setActiveProgramPatch({
-                                      startedAt: e.target.value,
-                                    })
-                                  }
-                                  className="!text-xs"
-                                />
-                              </div>
-
-                              <div className="space-y-1">
-                                <div className="text-xs text-muted-foreground">
-                                  Kết thúc
-                                </div>
-                                <Input
-                                  type="datetime-local"
-                                  value={activeProgram.endedAt}
-                                  min={activeProgram.startedAt}
-                                  onChange={(e) =>
-                                    setActiveProgramPatch({
-                                      endedAt: e.target.value,
-                                    })
-                                  }
-                                  className="!text-xs"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium">Mô tả ngắn</div>
-                          <div>
-                            <Textarea
-                              value={activeProgram.shortSummary}
-                              onChange={(e) =>
-                                setActiveProgramPatch({
-                                  shortSummary: e.target.value,
-                                })
-                              }
-                              placeholder="Mô tả ngắn gọn về chương trình (tối đa 160 ký tự)"
-                              className="min-h-[60px]"
-                              maxLength={160}
-                            />
-                            <div className="text-right">
-                              <span className="text-xs text-muted-foreground">
-                                {activeProgram.shortSummary.length}/160 ký tự
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium">
-                            Mô tả chi tiết và quy tắc tham gia
-                          </div>
-                          <div>
-                            <JoditEditor
-                              value={activeProgram.summary}
-                              config={{
-                                readonly: false,
-                                height: 300,
-                                placeholder:
-                                  "Giới thiệu ngắn gọn về chương trình...",
-                                beautifyHTML: true,
-                                showXPathInStatusbar: false,
-                                showCharsCounter: false,
-                                showWordsCounter: false,
-                                askBeforePasteHTML: false, // optional: avoid paste dialog
-                                defaultActionOnPaste: "insert_as_html", // optional: default action on paste
-                                defaultMode: 1,
-                                buttons:
-                                  "bold,italic,underline,ul,ol,font,brush,paragraph,left,right,center,justify,undo,redo",
-                              }}
-                              tabIndex={1} // tabIndex of textarea
-                              onBlur={(newContent) =>
-                                setActiveProgramPatch({ summary: newContent })
-                              }
-                              className="text-sm"
-                              onChange={(newContent) => {}}
-                            />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Xem trước</CardTitle>
-                        <CardDescription>
-                          Bản xem trước cho landing/mini app
-                        </CardDescription>
-                      </CardHeader>
-
-                      <CardContent>
-                        <div className="overflow-hidden rounded-2xl border shadow-sm">
-                          <div className="relative aspect-[16/9] w-full bg-muted">
-                            {activeProgram.image ? (
-                              <img
-                                src={activeProgram.image}
-                                alt=""
-                                className="h-full w-full object-cover transition duration-300"
-                              />
-                            ) : (
-                              <div className="grid h-full w-full place-items-center text-xs text-muted-foreground">
-                                Chưa có ảnh
-                              </div>
-                            )}
-
-                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
-
-                            <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border bg-white/80 px-3 py-1 text-xs backdrop-blur">
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  activeProgram.enabled
-                                    ? "bg-emerald-600"
-                                    : "bg-neutral-500"
-                                }`}
-                              />
-                              {activeProgram.enabled ? "Đang bật" : "Đang tắt"}
-                            </span>
-
-                            <div className="absolute inset-x-3 bottom-3 flex flex-wrap items-end justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="truncate text-base font-semibold text-white drop-shadow">
-                                  {activeProgram.programName ||
-                                    "Tên chương trình"}
-                                </div>
-                                <div className="mt-0.5 text-[11px] text-white/90 drop-shadow">
-                                  {activeProgram.programCode
-                                    ? `Mã: ${activeProgram.programCode}`
-                                    : ""}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3 p-4">
-                            <div className="flex flex-wrap items-center gap-2 text-xs">
-                              <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1">
-                                <CalendarClock className="h-3.5 w-3.5" />
-                                <span>
-                                  {activeProgram.startedAt ||
-                                    activeProgram.startedAt ||
-                                    "—"}
-                                  {"  "}→{"  "}
-                                  {activeProgram.endedAt ||
-                                    activeProgram.endedAt ||
-                                    "—"}
-                                </span>
-                              </span>
-                              {activeProgram.slogan ? (
-                                <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1">
-                                  <Sparkles className="h-3.5 w-3.5" />
-                                  {activeProgram.slogan}
-                                </span>
-                              ) : null}
-                            </div>
-
-                            <div
-                              className="richtext max-h-56 overflow-y-auto"
-                              dangerouslySetInnerHTML={{
-                                __html: activeProgram.summary || "",
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </CardContent>
-              </div>
+              <InfoSection
+                activeProgram={activeProgram}
+                setActiveProgramPatch={setActiveProgramPatch}
+                setPreviewImage={setPreviewImage}
+              />
             )}
             {step === 1 && (
               <div className="space-y-4 px-4">
@@ -1715,335 +1369,351 @@ export default function ProgramPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-muted/60">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Dãy số may mắn</CardTitle>
-                    <CardDescription>
-                      Phạm vi A→B và số lần lặp cho mỗi số
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <div className="space-y-1">
-                        <div className="text-xs text-muted-foreground">
-                          Từ (A)
+                {activeProgram.scenario.drawType === "online" && (
+                  <Card className="border-muted/60">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">
+                        Dãy số may mắn
+                      </CardTitle>
+                      <CardDescription>
+                        Phạm vi A→B và số lần lặp cho mỗi số
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <div className="space-y-1">
+                          <div className="text-xs text-muted-foreground">
+                            Từ (A)
+                          </div>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              value={activeProgram.scenario?.range?.min ?? 0}
+                              onChange={(e) =>
+                                setActiveProgramPatch({
+                                  scenario: {
+                                    ...(activeProgram.scenario ?? {}),
+                                    range: {
+                                      ...(activeProgram.scenario?.range ?? {}),
+                                      min: Number(e.target.value) || 0,
+                                    },
+                                  },
+                                })
+                              }
+                              className="pr-10"
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
+                              A
+                            </span>
+                          </div>
                         </div>
-                        <div className="relative">
+
+                        <div className="space-y-1">
+                          <div className="text-xs text-muted-foreground">
+                            Đến (B)
+                          </div>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              inputMode="numeric"
+                              value={activeProgram.scenario?.range?.max ?? 0}
+                              onChange={(e) =>
+                                setActiveProgramPatch({
+                                  scenario: {
+                                    ...(activeProgram.scenario ?? {}),
+                                    range: {
+                                      ...(activeProgram.scenario?.range ?? {}),
+                                      max: Number(e.target.value) || 0,
+                                    },
+                                  },
+                                })
+                              }
+                              className="pr-10"
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
+                              B
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="text-xs text-muted-foreground">
+                            Số lần lặp
+                          </div>
                           <Input
                             type="number"
                             inputMode="numeric"
-                            value={activeProgram.scenario?.range?.min ?? 0}
+                            value={activeProgram.scenario?.range?.repeat ?? 1}
                             onChange={(e) =>
                               setActiveProgramPatch({
                                 scenario: {
                                   ...(activeProgram.scenario ?? {}),
                                   range: {
                                     ...(activeProgram.scenario?.range ?? {}),
-                                    min: Number(e.target.value) || 0,
+                                    repeat: Math.max(
+                                      1,
+                                      Number(e.target.value) || 1
+                                    ),
                                   },
                                 },
                               })
                             }
-                            className="pr-10"
                           />
-                          <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
-                            A
-                          </span>
                         </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <div className="text-xs text-muted-foreground">
-                          Đến (B)
-                        </div>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            inputMode="numeric"
-                            value={activeProgram.scenario?.range?.max ?? 0}
-                            onChange={(e) =>
-                              setActiveProgramPatch({
-                                scenario: {
-                                  ...(activeProgram.scenario ?? {}),
-                                  range: {
-                                    ...(activeProgram.scenario?.range ?? {}),
-                                    max: Number(e.target.value) || 0,
-                                  },
-                                },
-                              })
-                            }
-                            className="pr-10"
-                          />
-                          <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
-                            B
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <Badge variant="secondary">
+                          Tổng lượt dãy:{" "}
+                          {Math.max(
+                            0,
+                            (activeProgram.scenario?.range?.max ?? 0) -
+                              (activeProgram.scenario?.range?.min ?? 0) +
+                              1
+                          ) *
+                            Math.max(
+                              1,
+                              activeProgram.scenario?.range?.repeat ?? 1
+                            )}
+                        </Badge>
+                        {(activeProgram.scenario?.range?.min ?? 0) >
+                          (activeProgram.scenario?.range?.max ?? 0) && (
+                          <span className="rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700 ring-1 ring-amber-200">
+                            Lưu ý: A nên ≤ B
                           </span>
-                        </div>
+                        )}
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                      <div className="space-y-1">
-                        <div className="text-xs text-muted-foreground">
-                          Số lần lặp
+                {activeProgram.scenario.drawType === "online" && (
+                  <Card className="border-muted/60">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Số lẻ may mắn</CardTitle>
+                      <CardDescription>
+                        Thêm số ngoài dãy A→B, thiết lập lặp & giải thưởng
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          Danh sách số lẻ
                         </div>
-                        <Input
-                          type="number"
-                          inputMode="numeric"
-                          value={activeProgram.scenario?.range?.repeat ?? 1}
-                          onChange={(e) =>
+                        <Button
+                          size="sm"
+                          className="gap-2"
+                          onClick={() =>
                             setActiveProgramPatch({
                               scenario: {
                                 ...(activeProgram.scenario ?? {}),
-                                range: {
-                                  ...(activeProgram.scenario?.range ?? {}),
-                                  repeat: Math.max(
-                                    1,
-                                    Number(e.target.value) || 1
-                                  ),
-                                },
+                                singles: [
+                                  ...((activeProgram.scenario
+                                    ?.singles as any[]) ?? []),
+                                  { value: 0, repeat: 1, prizeId: "" },
+                                ],
                               },
                             })
                           }
-                        />
+                        >
+                          <Plus className="h-4 w-4" />
+                          Thêm số
+                        </Button>
                       </div>
-                    </div>
 
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <Badge variant="secondary">
-                        Tổng lượt dãy:{" "}
-                        {Math.max(
-                          0,
-                          (activeProgram.scenario?.range?.max ?? 0) -
-                            (activeProgram.scenario?.range?.min ?? 0) +
-                            1
-                        ) *
-                          Math.max(
-                            1,
-                            activeProgram.scenario?.range?.repeat ?? 1
-                          )}
-                      </Badge>
-                      {(activeProgram.scenario?.range?.min ?? 0) >
-                        (activeProgram.scenario?.range?.max ?? 0) && (
-                        <span className="rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700 ring-1 ring-amber-200">
-                          Lưu ý: A nên ≤ B
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-muted/60">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Số lẻ may mắn</CardTitle>
-                    <CardDescription>
-                      Thêm số ngoài dãy A→B, thiết lập lặp & giải thưởng
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
-                        Danh sách số lẻ
-                      </div>
-                      <Button
-                        size="sm"
-                        className="gap-2"
-                        onClick={() =>
-                          setActiveProgramPatch({
-                            scenario: {
-                              ...(activeProgram.scenario ?? {}),
-                              singles: [
-                                ...((activeProgram.scenario
-                                  ?.singles as any[]) ?? []),
-                                { value: 0, repeat: 1, prizeId: "" },
-                              ],
-                            },
-                          })
-                        }
-                      >
-                        <Plus className="h-4 w-4" />
-                        Thêm số
-                      </Button>
-                    </div>
-
-                    <ScrollArea className="h-[300px] rounded-lg border">
-                      <Table className="text-sm">
-                        <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                          <TableRow className="[&>th]:h-9 [&>th]:px-3">
-                            <TableHead className="w-[120px] text-left">
-                              Số
-                            </TableHead>
-                            <TableHead className="w-[140px] text-left">
-                              Số lần lặp
-                            </TableHead>
-                            <TableHead>Giải thưởng</TableHead>
-                            <TableHead className="w-[92px] text-left">
-                              Hành động
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                          {(activeProgram.scenario?.singles ?? []).map(
-                            (row: any, idx: number) => {
-                              const min =
-                                activeProgram.scenario?.range?.min ?? 0;
-                              const max =
-                                activeProgram.scenario?.range?.max ?? 0;
-                              const inRange =
-                                row.value >= min && row.value <= max;
-
-                              return (
-                                <TableRow
-                                  key={idx}
-                                  className="[&>td]:px-3 [&>td]:py-2"
-                                >
-                                  <TableCell className="text-right">
-                                    <Input
-                                      type="number"
-                                      inputMode="numeric"
-                                      value={row.value}
-                                      onChange={(e) => {
-                                        const v = Number(e.target.value) || 0;
-                                        const next = (
-                                          activeProgram.scenario?.singles ?? []
-                                        ).map((x: any, i: number) =>
-                                          i === idx ? { ...x, value: v } : x
-                                        );
-                                        setActiveProgramPatch({
-                                          scenario: {
-                                            ...(activeProgram.scenario ?? {}),
-                                            singles: next,
-                                          },
-                                        });
-                                      }}
-                                      className={cn(
-                                        inRange && "border-amber-400"
-                                      )}
-                                    />
-                                    {inRange && (
-                                      <div className="mt-1 text-[10px] text-amber-600">
-                                        Số này trùng dãy A→B
-                                      </div>
-                                    )}
-                                  </TableCell>
-
-                                  <TableCell className="text-right">
-                                    <Input
-                                      type="number"
-                                      inputMode="numeric"
-                                      value={row.repeat ?? 1}
-                                      onChange={(e) => {
-                                        const v = Math.max(
-                                          1,
-                                          Number(e.target.value) || 1
-                                        );
-                                        const next = (
-                                          activeProgram.scenario?.singles ?? []
-                                        ).map((x: any, i: number) =>
-                                          i === idx ? { ...x, repeat: v } : x
-                                        );
-                                        setActiveProgramPatch({
-                                          scenario: {
-                                            ...(activeProgram.scenario ?? {}),
-                                            singles: next,
-                                          },
-                                        });
-                                      }}
-                                    />
-                                  </TableCell>
-
-                                  <TableCell>
-                                    <Select
-                                      value={row.prizeId ?? ""}
-                                      onValueChange={(val) => {
-                                        const next = (
-                                          activeProgram.scenario?.singles ?? []
-                                        ).map((x: any, i: number) =>
-                                          i === idx ? { ...x, prizeId: val } : x
-                                        );
-                                        setActiveProgramPatch({
-                                          scenario: {
-                                            ...(activeProgram.scenario ?? {}),
-                                            singles: next,
-                                          },
-                                        });
-                                      }}
-                                    >
-                                      <SelectTrigger className="w-[260px]">
-                                        <SelectValue placeholder="Chọn giải thưởng" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectGroup>
-                                          {activeProgram.prizes.map((p) => (
-                                            <SelectItem key={p.id} value={p.id}>
-                                              {p.name}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectGroup>
-                                      </SelectContent>
-                                    </Select>
-                                  </TableCell>
-
-                                  <TableCell className="text-right">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => {
-                                        const next = (
-                                          activeProgram.scenario?.singles ?? []
-                                        ).filter(
-                                          (_: any, i: number) => i !== idx
-                                        );
-                                        setActiveProgramPatch({
-                                          scenario: {
-                                            ...(activeProgram.scenario ?? {}),
-                                            singles: next,
-                                          },
-                                        });
-                                      }}
-                                      aria-label="Xoá"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            }
-                          )}
-
-                          {(activeProgram.scenario?.singles ?? []).length ===
-                            0 && (
-                            <TableRow>
-                              <TableCell
-                                colSpan={4}
-                                className="h-[72px] text-center text-sm text-muted-foreground"
-                              >
-                                Chưa có số lẻ may mắn
-                              </TableCell>
+                      <ScrollArea className="h-[300px] rounded-lg border">
+                        <Table className="text-sm">
+                          <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                            <TableRow className="[&>th]:h-9 [&>th]:px-3">
+                              <TableHead className="w-[120px] text-left">
+                                Số
+                              </TableHead>
+                              <TableHead className="w-[140px] text-left">
+                                Số lần lặp
+                              </TableHead>
+                              <TableHead>Giải thưởng</TableHead>
+                              <TableHead className="w-[92px] text-left">
+                                Hành động
+                              </TableHead>
                             </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                      <ScrollBar orientation="vertical" />
-                    </ScrollArea>
+                          </TableHeader>
+                          <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
+                            {(activeProgram.scenario?.singles ?? []).map(
+                              (row: any, idx: number) => {
+                                const min =
+                                  activeProgram.scenario?.range?.min ?? 0;
+                                const max =
+                                  activeProgram.scenario?.range?.max ?? 0;
+                                const inRange =
+                                  row.value >= min && row.value <= max;
 
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <Badge variant="secondary">
-                        Tổng lượt dãy:{" "}
-                        {Math.max(
-                          0,
-                          (activeProgram.scenario?.range?.max ?? 0) -
-                            (activeProgram.scenario?.range?.min ?? 0) +
-                            1
-                        ) *
-                          Math.max(
-                            1,
-                            activeProgram.scenario?.range?.repeat ?? 1
-                          )}
-                      </Badge>
-                      <Badge>
-                        Số lẻ: {(activeProgram.scenario?.singles ?? []).length}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
+                                return (
+                                  <TableRow
+                                    key={idx}
+                                    className="[&>td]:px-3 [&>td]:py-2"
+                                  >
+                                    <TableCell className="text-right">
+                                      <Input
+                                        type="number"
+                                        inputMode="numeric"
+                                        value={row.value}
+                                        onChange={(e) => {
+                                          const v = Number(e.target.value) || 0;
+                                          const next = (
+                                            activeProgram.scenario?.singles ??
+                                            []
+                                          ).map((x: any, i: number) =>
+                                            i === idx ? { ...x, value: v } : x
+                                          );
+                                          setActiveProgramPatch({
+                                            scenario: {
+                                              ...(activeProgram.scenario ?? {}),
+                                              singles: next,
+                                            },
+                                          });
+                                        }}
+                                        className={cn(
+                                          inRange && "border-amber-400"
+                                        )}
+                                      />
+                                      {inRange && (
+                                        <div className="mt-1 text-[10px] text-amber-600">
+                                          Số này trùng dãy A→B
+                                        </div>
+                                      )}
+                                    </TableCell>
+
+                                    <TableCell className="text-right">
+                                      <Input
+                                        type="number"
+                                        inputMode="numeric"
+                                        value={row.repeat ?? 1}
+                                        onChange={(e) => {
+                                          const v = Math.max(
+                                            1,
+                                            Number(e.target.value) || 1
+                                          );
+                                          const next = (
+                                            activeProgram.scenario?.singles ??
+                                            []
+                                          ).map((x: any, i: number) =>
+                                            i === idx ? { ...x, repeat: v } : x
+                                          );
+                                          setActiveProgramPatch({
+                                            scenario: {
+                                              ...(activeProgram.scenario ?? {}),
+                                              singles: next,
+                                            },
+                                          });
+                                        }}
+                                      />
+                                    </TableCell>
+
+                                    <TableCell>
+                                      <Select
+                                        value={row.prizeId ?? ""}
+                                        onValueChange={(val) => {
+                                          const next = (
+                                            activeProgram.scenario?.singles ??
+                                            []
+                                          ).map((x: any, i: number) =>
+                                            i === idx
+                                              ? { ...x, prizeId: val }
+                                              : x
+                                          );
+                                          setActiveProgramPatch({
+                                            scenario: {
+                                              ...(activeProgram.scenario ?? {}),
+                                              singles: next,
+                                            },
+                                          });
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-[260px]">
+                                          <SelectValue placeholder="Chọn giải thưởng" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectGroup>
+                                            {activeProgram.prizes.map((p) => (
+                                              <SelectItem
+                                                key={p.id}
+                                                value={p.id}
+                                              >
+                                                {p.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectGroup>
+                                        </SelectContent>
+                                      </Select>
+                                    </TableCell>
+
+                                    <TableCell className="text-right">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => {
+                                          const next = (
+                                            activeProgram.scenario?.singles ??
+                                            []
+                                          ).filter(
+                                            (_: any, i: number) => i !== idx
+                                          );
+                                          setActiveProgramPatch({
+                                            scenario: {
+                                              ...(activeProgram.scenario ?? {}),
+                                              singles: next,
+                                            },
+                                          });
+                                        }}
+                                        aria-label="Xoá"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              }
+                            )}
+
+                            {(activeProgram.scenario?.singles ?? []).length ===
+                              0 && (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={4}
+                                  className="h-[72px] text-center text-sm text-muted-foreground"
+                                >
+                                  Chưa có số lẻ may mắn
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                        <ScrollBar orientation="vertical" />
+                      </ScrollArea>
+
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <Badge variant="secondary">
+                          Tổng lượt dãy:{" "}
+                          {Math.max(
+                            0,
+                            (activeProgram.scenario?.range?.max ?? 0) -
+                              (activeProgram.scenario?.range?.min ?? 0) +
+                              1
+                          ) *
+                            Math.max(
+                              1,
+                              activeProgram.scenario?.range?.repeat ?? 1
+                            )}
+                        </Badge>
+                        <Badge>
+                          Số lẻ:{" "}
+                          {(activeProgram.scenario?.singles ?? []).length}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
             {step === 4 && (
