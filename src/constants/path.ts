@@ -7,6 +7,7 @@ const PATH = {
     GIFT: "/collect/gift/list",
     CUSTOMER: "/collect/consumer/list",
     CUSTOMER_LUCKY_HISTORY: "zalo/campaign/detail/number",
+    LUCKY_HISTORY: "/zalo/campaign/lucky/history",
   },
 };
 export default PATH;

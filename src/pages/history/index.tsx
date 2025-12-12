@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { useGetProgramLuckyHistory } from "@/react-query/queries/program/program";
 
 // ---------------------- Types ----------------------
 type HistoryRow = {
@@ -274,14 +275,18 @@ type SortKey =
   | "prize"
   | "program"
   | "programCode"
+  | "idCard"
   | "drawAt"
   | "wonAt";
 type SortDir = "asc" | "desc";
 type TabKey = "participants" | "winners";
 
 const HistoryPage: React.FC = () => {
+  const { data: histories } = useGetProgramLuckyHistory({
+    c: "tungbunghethu1",
+  });
   // data
-  const [rows, setRows] = useState<HistoryRow[]>(() => buildDemoRows(200));
+  const [rows, setRows] = useState<HistoryRow[]>([]);
 
   // filters
   const [q, setQ] = useState("");
@@ -499,6 +504,23 @@ const HistoryPage: React.FC = () => {
     setTab("winners");
   };
 
+  useEffect(() => {
+    setRows(
+      histories?.map((item, index) => ({
+        id: index.toString(),
+        drawAt: item.time,
+        phone: item.consumer_phone,
+        prize: item.award_name,
+        program: "tung bung ",
+        address: "",
+        idCard: item.number.toString(),
+        name: item.consumer_name,
+        note: "",
+        programCode: "",
+        wonAt: item.award_time,
+      })) || []
+    );
+  }, [histories]);
   return (
     <div className="p-6 space-y-6">
       <Card>
@@ -927,12 +949,9 @@ function DataTable(props: {
             <TableRow className="[&>th]:h-10 [&>th]:px-3">
               <TableHead className="w-10 text-center">#</TableHead>
               {headerCell("Chương trình", "program")}
-              {headerCell("Mã", "programCode", "w-[90px]")}
+              {headerCell("Số quay thưởng", "idCard", "w-[90px]")}
               {headerCell("Tên khách hàng", "name")}
               {headerCell("Số điện thoại", "phone")}
-              <TableHead>Địa chỉ</TableHead>
-              <TableHead>CCCD</TableHead>
-              <TableHead>Ghi chú</TableHead>
               {headerCell("Thời gian bốc số", "drawAt", "w-[200px]")}
               {headerCell("Thời gian trúng thưởng", "wonAt", "w-[200px]")}
               <TableHead className="w-[72px] text-right">Thao tác</TableHead>
@@ -963,9 +982,7 @@ function DataTable(props: {
                   </div>
                 </TableCell>
 
-                <TableCell className="font-mono">
-                  {programCodes.get(r.program) || r.programCode || "—"}
-                </TableCell>
+                <TableCell className="font-mono">{r.idCard}</TableCell>
 
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -1010,16 +1027,6 @@ function DataTable(props: {
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                </TableCell>
-
-                <TableCell className="truncate max-w-[180px]">
-                  {r.address?.trim() || "—"}
-                </TableCell>
-                <TableCell className="truncate max-w-[140px]">
-                  {r.idCard?.trim() || "—"}
-                </TableCell>
-                <TableCell className="truncate max-w-[220px]">
-                  {r.note?.trim() || "—"}
                 </TableCell>
 
                 <TableCell>{formatDateTime(r.drawAt)}</TableCell>

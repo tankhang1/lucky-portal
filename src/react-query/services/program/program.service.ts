@@ -96,3 +96,49 @@ export const searchCustomer = async (
   });
   return data;
 };
+
+export type TProgramDetailNumber = {
+  number: number;
+  award_name?: string;
+  gift_image: string;
+  gift_name: string;
+  time: string;
+  award_time: string;
+};
+export type TGetProgramDetailNumberRes = TProgramDetailNumber[];
+export type TGetProgramDetailNumberReq = {
+  p: string;
+  c: string;
+};
+export const getProgramDetailNumber = async (
+  params: TGetProgramDetailNumberReq
+): Promise<TGetProgramDetailNumberRes> => {
+  const { data } = await api.get(PATH.PROGRAM.CUSTOMER_LUCKY_HISTORY, {
+    params,
+  });
+  return data;
+};
+
+export type TProgramLuckyHistory = {
+  number: number;
+  consumer_name: string;
+  award_name: string;
+  gift_image: string;
+  consumer_code: string;
+  gift_name: string;
+  consumer_phone: string;
+  time: string;
+  award_time: string;
+};
+export type TProgramLuckyHistoryReq = {
+  c: string;
+};
+export type TProgramLuckyHistoryRes = TProgramLuckyHistory[];
+export const getProgramLuckyHistory = async (
+  params: TProgramLuckyHistoryReq
+): Promise<TProgramLuckyHistoryRes> => {
+  const { data } = await api.get(PATH.PROGRAM.LUCKY_HISTORY, {
+    params,
+  });
+  return data;
+};
