@@ -24,14 +24,17 @@ import {
   Download,
 } from "lucide-react";
 import JoditEditor from "jodit-react";
+import type { TProgram } from "@/react-query/services/program/program.service";
+import { Tabs } from "@/components/ui/tabs";
+import { ImageField } from "@/components/image-field";
 
 export default function InfoSection({
   activeProgram,
   setActiveProgramPatch,
   setPreviewImage,
 }: {
-  activeProgram: any;
-  setActiveProgramPatch: (patch: Record<string, any>) => void;
+  activeProgram: TProgram;
+  setActiveProgramPatch: (patch: Record<string, TProgram>) => void;
   setPreviewImage: (src: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -55,7 +58,7 @@ export default function InfoSection({
       alert("Vui lòng chọn ảnh ≤ 2MB");
       return;
     }
-    setActiveProgramPatch({ image: await fileToDataUrl(f) });
+    // setActiveProgramPatch({ im: await fileToDataUrl(f) });
   }
 
   async function handlePdf(f?: File | null) {
@@ -69,11 +72,11 @@ export default function InfoSection({
       return;
     }
     const dataUrl = await fileToDataUrl(f);
-    setActiveProgramPatch({
-      rulesPdf: dataUrl,
-      rulesPdfName: f.name,
-      rulesPdfSize: f.size,
-    });
+    // setActiveProgramPatch({
+    //   rulesPdf: dataUrl,
+    //   rulesPdfName: f.name,
+    //   rulesPdfSize: f.size,
+    // });
   }
 
   function prettySize(bytes?: number) {
@@ -112,10 +115,7 @@ export default function InfoSection({
                       Mã chương trình
                     </div>
                     <Input
-                      value={activeProgram.programCode || ""}
-                      onChange={(e) =>
-                        setActiveProgramPatch({ programCode: e.target.value })
-                      }
+                      value={activeProgram.code || ""}
                       placeholder="Mã chương trình"
                       className="max-w-40 uppercase font-medium"
                     />
@@ -125,10 +125,7 @@ export default function InfoSection({
                       Tên chương trình
                     </div>
                     <Input
-                      value={activeProgram.programName}
-                      onChange={(e) =>
-                        setActiveProgramPatch({ programName: e.target.value })
-                      }
+                      value={activeProgram.name}
                       className="flex-1"
                       placeholder="Tên chương trình"
                     />
@@ -138,18 +135,13 @@ export default function InfoSection({
                       Trạng thái
                     </div>
                     <button
-                      onClick={() =>
-                        setActiveProgramPatch({
-                          enabled: !activeProgram.enabled,
-                        })
-                      }
                       className={`shrink-0 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] cursor-pointer transition ${
-                        activeProgram.enabled
+                        activeProgram.status
                           ? "border-emerald-200 text-emerald-700 bg-emerald-50"
                           : "bg-neutral-50 border-neutral-200 text-neutral-600"
                       }`}
                     >
-                      {activeProgram.enabled ? "Đang bật" : "Đang tắt"}
+                      {activeProgram.status ? "Đang bật" : "Đang tắt"}
                     </button>
                   </div>
                 </div>
@@ -159,6 +151,34 @@ export default function InfoSection({
         </CardHeader>
 
         <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">Hình ảnh chương trình</div>
+              <div className="text-xs text-muted-foreground">
+                PNG/JPG/WebP • ≤ 2MB
+              </div>
+            </div>
+
+            <Tabs defaultValue="zalo" className="w-full">
+              <div className="grid gap-4 md:grid-cols-2">
+                <ImageField
+                  label="Banner"
+                  hint="Tỉ lệ 3:1 • gợi ý 1500×500"
+                  value={activeProgram?.image_banner || ""}
+                  onChange={() => {}}
+                  onClear={() => {}}
+                />
+
+                <ImageField
+                  label="Thumbnail"
+                  hint="Tỉ lệ 1:1 • gợi ý 600×600"
+                  value={activeProgram?.image_thumbnail || ""}
+                  onChange={() => {}}
+                  onClear={() => {}}
+                />
+              </div>
+            </Tabs>
+          </div>
           <div className="space-y-2">
             <div className="text-sm font-medium">Thời gian</div>
             <div className="space-y-1">
@@ -170,10 +190,7 @@ export default function InfoSection({
                   <div className="text-xs text-muted-foreground">Bắt đầu</div>
                   <Input
                     type="datetime-local"
-                    value={activeProgram.startedAt}
-                    onChange={(e) =>
-                      setActiveProgramPatch({ startedAt: e.target.value })
-                    }
+                    value={activeProgram.time_start}
                     className="!text-xs"
                   />
                 </div>
@@ -181,11 +198,8 @@ export default function InfoSection({
                   <div className="text-xs text-muted-foreground">Kết thúc</div>
                   <Input
                     type="datetime-local"
-                    value={activeProgram.endedAt}
-                    min={activeProgram.startedAt}
-                    onChange={(e) =>
-                      setActiveProgramPatch({ endedAt: e.target.value })
-                    }
+                    value={activeProgram.time_end}
+                    min={activeProgram.time_start}
                     className="!text-xs"
                   />
                 </div>
@@ -213,7 +227,7 @@ export default function InfoSection({
                 await handlePdf(e.dataTransfer.files?.[0]);
               }}
             >
-              {!activeProgram.rulesPdf ? (
+              {!activeProgram.pdf_link ? (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <FileText className="h-5 w-5" />
@@ -233,10 +247,7 @@ export default function InfoSection({
                     <FileText className="h-5 w-5" />
                     <div className="min-w-0">
                       <div className="text-sm truncate">
-                        {activeProgram.rulesPdfName || "file.pdf"}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {prettySize(activeProgram.rulesPdfSize)}
+                        {activeProgram.pdf_link || "file.pdf"}
                       </div>
                     </div>
                   </div>
@@ -245,15 +256,15 @@ export default function InfoSection({
                       size="sm"
                       variant="secondary"
                       onClick={() =>
-                        window.open(activeProgram.rulesPdf, "_blank")!
+                        window.open(activeProgram.pdf_link, "_blank")!
                       }
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Xem
                     </Button>
                     <a
-                      href={activeProgram.rulesPdf}
-                      download={activeProgram.rulesPdfName || "rules.pdf"}
+                      href={activeProgram.pdf_link}
+                      download={activeProgram.pdf_link || "rules.pdf"}
                       className="inline-flex"
                     >
                       <Button size="sm" variant="secondary">
@@ -261,17 +272,7 @@ export default function InfoSection({
                         Tải
                       </Button>
                     </a>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() =>
-                        setActiveProgramPatch({
-                          rulesPdf: "",
-                          rulesPdfName: "",
-                          rulesPdfSize: 0,
-                        })
-                      }
-                    >
+                    <Button size="sm" variant="destructive">
                       <Trash2 className="h-4 w-4 mr-2" />
                       Xoá
                     </Button>
@@ -289,15 +290,13 @@ export default function InfoSection({
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-medium">
-              Mô tả chi tiết và quy tắc tham gia
-            </div>
+            <div className="text-sm font-medium">Mô tả ngắn</div>
             <div>
               <JoditEditor
-                value={activeProgram.summary}
+                value={activeProgram.description_short}
                 config={{
                   readonly: false,
-                  height: 700,
+                  height: 300,
                   placeholder: "Giới thiệu ngắn gọn về chương trình...",
                   beautifyHTML: true,
                   showXPathInStatusbar: false,
@@ -310,9 +309,33 @@ export default function InfoSection({
                     "bold,italic,underline,ul,ol,font,brush,paragraph,left,right,center,justify,undo,redo",
                 }}
                 tabIndex={1}
-                onBlur={(newContent) =>
-                  setActiveProgramPatch({ summary: newContent })
-                }
+                className="text-sm"
+                onChange={(newContent) => {}}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm font-medium">
+              Mô tả chi tiết và quy tắc tham gia
+            </div>
+            <div>
+              <JoditEditor
+                value={activeProgram.description}
+                config={{
+                  readonly: false,
+                  height: 700,
+                  placeholder: "Giới thiệu về chương trình...",
+                  beautifyHTML: true,
+                  showXPathInStatusbar: false,
+                  showCharsCounter: false,
+                  showWordsCounter: false,
+                  askBeforePasteHTML: false, // optional: avoid paste dialog
+                  defaultActionOnPaste: "insert_as_html", // optional: default action on paste
+                  defaultMode: 1,
+                  buttons:
+                    "bold,italic,underline,ul,ol,font,brush,paragraph,left,right,center,justify,undo,redo",
+                }}
+                tabIndex={1}
                 className="text-sm"
                 onChange={(newContent) => {}}
               />

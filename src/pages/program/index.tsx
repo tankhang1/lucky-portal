@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { z } from "zod";
 import {
@@ -10,8 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -19,6 +17,32 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Plus,
+  Trash2,
+  Sparkles,
+  Image as ImageIcon,
+  Search,
+  Copy,
+  UploadCloud,
+  Pencil,
+  ArrowUpDown,
+  Filter,
+  Check,
+} from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { IconDotsVertical } from "@tabler/icons-react";
+import Stepper from "@/components/stepper";
+import { cn } from "@/lib/utils";
+import InfoSection from "./components/Info";
+import {
+  useSearchGift,
+  useSearchProgram,
+} from "@/react-query/queries/program/program";
+import type { TProgram } from "@/react-query/services/program/program.service";
+import PrizeSection from "./components/Prize";
+import CustomerSection from "./components/Customer";
 import {
   Table,
   TableBody,
@@ -27,58 +51,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import {
-  Plus,
-  Trash2,
-  Upload,
-  Sparkles,
-  Image as ImageIcon,
-  Search,
-  Copy,
-  Eye,
-  UploadCloud,
-  Pencil,
-  MoreHorizontal,
-  Info,
-  ArrowUpDown,
-  Filter,
-  CalendarClock,
-  Check,
-  GripVertical,
-  Clock,
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectGroup,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { IconDotsVertical, IconTransferVertical } from "@tabler/icons-react";
-import JoditEditor from "jodit-react";
-import Stepper from "@/components/stepper";
-import { ImageField } from "@/components/image-field";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
-import { DndContext, closestCenter } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { SortableRow, useSortableHandle } from "@/components/sortable-row";
-import { Switch } from "@/components/ui/switch";
-import ActionIcon from "@/components/action-icon";
-import InfoSection from "./components/Info";
+import { SelectItem } from "@radix-ui/react-select";
 const fileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -280,146 +260,6 @@ const parseCustomersCsv = async (file: File): Promise<CustomerRow[]> => {
   return rows;
 };
 
-const defaultPrograms = (): Program[] => [
-  {
-    id: crypto.randomUUID(),
-    programName: "Tết 2025 – Lì xì vui vẻ",
-    programCode: "TET2025",
-    image: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
-    slogan: "Chúc bạn một năm mới an khang thịnh vượng",
-    enabled: true,
-    summary: `<p><span style="font-size: 14px;">Chương trình tri ân khách hàng dịp tết 2025. Tham gia quay số nhận e-voucher và quà Tết hấp dẫn.</span></p><ul><li><span style="font-size: 14px;">Mỗi số điện thoại được tham gia theo số lượt quay được cấp.</span></li><li><span style="font-size: 14px;">Giải thưởng không quy đổi thành tiền mặt.</span></li><span style="font-size: 14px;"><br></span></ul>`,
-    shortSummary: "Chương trình Tết 2025 với nhiều phần quà hấp dẫn.",
-    clientFields: ["name", "email"],
-    reminder: {
-      enabled: false,
-      sendAt: "",
-      message: "",
-    },
-    landing: {
-      background: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
-      thumb: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
-    },
-    zalo: {
-      banner: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
-      thumb: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
-    },
-    rules: [
-      "Mỗi số điện thoại được tham gia theo số lượt quay được cấp.",
-      "Giải thưởng không quy đổi thành tiền mặt.",
-      "BTC có quyền điều chỉnh thể lệ khi cần thiết.",
-    ],
-    prizes: [
-      {
-        id: "p-evoucher",
-        name: "E-voucher 50K",
-        prizeName: "Voucher 50.000đ",
-        image: "",
-        stock: 1000,
-        note: "Mã trị giá 50.000đ",
-      },
-      {
-        id: "p-combo-tet",
-        name: "Combo Tết",
-        prizeName: "Combo quà Tết",
-        image: "",
-        stock: 200,
-        note: "Gồm nhiều sản phẩm",
-      },
-      {
-        id: "p-jackpot",
-        name: "Jackpot 5,000,000đ",
-        prizeName: "Giải đặc biệt 5.000.000đ",
-        image: "",
-        stock: 5,
-        note: "Giải đặc biệt",
-      },
-    ],
-    normalPrizes: [
-      {
-        prizeId: "p-evoucher",
-        quantity: 500,
-        min: 0,
-        max: 99,
-        defaultDrawsPerNumber: 1,
-      },
-      {
-        prizeId: "p-combo-tet",
-        quantity: 50,
-        min: 100,
-        max: 199,
-        defaultDrawsPerNumber: 2,
-      },
-    ],
-    ranges: [],
-    specialNumbers: [
-      { value: 7777, prizeId: "p-jackpot" },
-      { value: 2025, prizeId: "p-combo-tet" },
-    ],
-    scenario: {
-      drawType: "online",
-      range: { min: 0, max: 9999, repeat: 1 },
-      singles: [],
-    },
-  },
-  {
-    id: crypto.randomUUID(),
-    programName: "Sinh nhật 10 năm",
-    image: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
-    programCode: "BDAY10",
-    slogan: "Kỷ niệm 10 năm – Quay là trúng",
-    enabled: false,
-    reminder: {
-      enabled: false,
-      sendAt: "",
-      message: "",
-    },
-    landing: {
-      background: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
-      thumb: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
-    },
-    zalo: {
-      banner: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
-      thumb: "https://img.lovepik.com/photo/40079/9618.jpg_wh860.jpg",
-    },
-    summary:
-      "Kỷ niệm 10 năm, tham gia quay số để nhận bộ quà đặc biệt dành riêng cho sự kiện.",
-    shortSummary: "Kỷ niệm 10 năm với bộ quà đặc biệt.",
-    clientFields: ["name", "email", "address"],
-    rules: [
-      "Áp dụng cho khách hàng mời tham dự sự kiện.",
-      "Thông tin người trúng thưởng phải trùng khớp khi nhận quà.",
-    ],
-    prizes: [
-      {
-        id: "p-birthday-kit",
-        name: "Bộ quà sinh nhật",
-        prizeName: "Bộ quà 10 năm",
-        image: "",
-        stock: 300,
-        note: "",
-      },
-      { id: "p-10yrs", name: "Bộ quà 10 năm", image: "", stock: 100, note: "" },
-    ],
-    normalPrizes: [
-      {
-        prizeId: "p-birthday-kit",
-        quantity: 150,
-        min: 10,
-        max: 99,
-        defaultDrawsPerNumber: 1,
-      },
-    ],
-    ranges: [],
-    specialNumbers: [{ value: 1010, prizeId: "p-10yrs" }],
-    scenario: {
-      drawType: "online",
-      range: { min: 0, max: 9999, repeat: 1 },
-      singles: [],
-    },
-  },
-];
-
 const defaultCustomers: CustomerRow[] = [
   { index: 1, name: "Nguyen Van A", phone: "0901111222", attempts: 2 },
   { index: 2, name: "Tran B", phone: "+84903111222", attempts: 1 },
@@ -431,28 +271,13 @@ const defaultCustomers: CustomerRow[] = [
 const coveredByRanges = (ranges: RangeRule[], n: number) =>
   ranges.some((r) => n >= r.min && n <= r.max);
 
-function TableEmpty({
-  colSpan,
-  children,
-}: {
-  colSpan: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <TableRow>
-      <TableCell colSpan={colSpan} className="h-[88px] text-center">
-        <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-          <div className="text-sm">{children}</div>
-        </div>
-      </TableCell>
-    </TableRow>
-  );
-}
-
 export default function ProgramPage() {
-  const [programs, setPrograms] = useState<Program[]>(defaultPrograms());
+  const { data: listProgram } = useSearchProgram({
+    k: "",
+  });
+  // const [programs, setPrograms] = useState<TProgram[]>([]);
   const [search, setSearch] = useState("");
-  const [activeId, setActiveId] = useState(programs[0].id);
+  const [activeId, setActiveId] = useState<number>(-1);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerRow[]>(defaultCustomers);
   const [newName, setNewName] = useState("");
@@ -461,127 +286,127 @@ export default function ProgramPage() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const excelRef = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState(0);
-  const [openHistory, setOpenHistory] = React.useState(false);
-  const [historyOf, setHistoryOf] = React.useState<CustomerRow | null>(null);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "enabled" | "disabled"
   >("all");
 
-  const [sortBy, setSortBy] = useState<"name" | "prizes">("name");
   const activeProgram = useMemo(
-    () => programs.find((p) => p.id === activeId)!,
-    [programs, activeId]
+    () => listProgram?.find((p) => p.id === activeId)!,
+    [listProgram, activeId]
   );
-  const historyByPhone: Record<
-    string,
-    Array<{ at: string; action: string; result?: string }>
-  > = {
-    // "0901111222": [{ at: "2025-01-12 09:00", action: "Tham gia bốc số", result: "Số 2025" }],
-  };
+  const { data: gifts } = useSearchGift({
+    campaignCode: activeProgram?.code,
+  });
+  const rangeNumberOnline = useMemo(() => {
+    if (!activeProgram?.number_extra) return [];
+    const list = activeProgram?.number_extra?.split(",");
+    return list?.map((item) => {
+      const [number, repeat, giftId] = item.split("@@");
+      return {
+        number,
+        repeat,
+        giftId,
+      };
+    });
+  }, [activeProgram]);
 
-  const setActiveProgramPatch = (patch: Partial<Program>) =>
-    setPrograms((prev) =>
-      prev.map((p) => (p.id === activeId ? { ...p, ...patch } : p))
-    );
+  const setActiveProgramPatch = (patch: Partial<TProgram>) => {};
 
   const addProgram = () => {
-    const p: Program = {
-      id: crypto.randomUUID(),
-      programCode: "",
-      programName: `Chương trình #${programs.length + 1}`,
-      image: "",
-      slogan: "",
-      enabled: true,
-      shortSummary: "",
-      summary: "",
-      zalo: {
-        banner: "",
-        thumb: "",
-      },
-      landing: {
-        background: "",
-        thumb: "",
-      },
-      rules: [],
-      prizes: [],
-      normalPrizes: [],
-      ranges: [],
-      clientFields: [],
-      specialNumbers: [],
-      reminder: {
-        enabled: false,
-        sendAt: "",
-        message: "",
-      },
-      startedAt: undefined,
-      endedAt: undefined,
-      scenario: {
-        drawType: "cage",
-        range: { min: 0, max: 9999, repeat: 1 },
-        singles: [],
-      },
-    };
-    setPrograms((x) => [...x, p]);
-    setActiveId(p.id);
+    // const p: TProgram = {
+    //   id: crypto.randomUUID(),
+    //   programCode: "",
+    //   programName: `Chương trình #${programs.length + 1}`,
+    //   image: "",
+    //   slogan: "",
+    //   enabled: true,
+    //   shortSummary: "",
+    //   summary: "",
+    //   zalo: {
+    //     banner: "",
+    //     thumb: "",
+    //   },
+    //   landing: {
+    //     background: "",
+    //     thumb: "",
+    //   },
+    //   rules: [],
+    //   prizes: [],
+    //   normalPrizes: [],
+    //   ranges: [],
+    //   clientFields: [],
+    //   specialNumbers: [],
+    //   reminder: {
+    //     enabled: false,
+    //     sendAt: "",
+    //     message: "",
+    //   },
+    //   startedAt: undefined,
+    //   endedAt: undefined,
+    //   scenario: {
+    //     drawType: "cage",
+    //     range: { min: 0, max: 9999, repeat: 1 },
+    //     singles: [],
+    //   },
+    // };
+    // setPrograms((x) => [...x, p]);
+    // setActiveId(p.id);
   };
   const stats = useMemo(() => {
-    const total = programs.length;
-    const enabled = programs.filter((p) => p.enabled).length;
+    const total = listProgram?.length || 0;
+    const enabled = listProgram?.filter((p) => p.status === 1).length || 0;
     const disabled = total - enabled;
     return { total, enabled, disabled };
-  }, [programs]);
+  }, [listProgram]);
 
   const filteredPrograms = useMemo(() => {
     const q = search.toLowerCase();
-    let list = programs.filter((p) => p.programName.toLowerCase().includes(q));
+    let list = listProgram?.filter((p) => p.name.toLowerCase().includes(q));
     if (statusFilter !== "all") {
-      list = list.filter((p) =>
-        statusFilter === "enabled" ? p.enabled : !p.enabled
+      list = list?.filter((p) =>
+        statusFilter === "enabled" ? p.status : !p.status
       );
     }
-    list = list.sort((a, b) => {
-      if (sortBy === "name") return a.programName.localeCompare(b.programName);
-      return (b.prizes?.length || 0) - (a.prizes?.length || 0);
-    });
     return list;
-  }, [programs, search, statusFilter, sortBy]);
-  const duplicateProgram = (id: string) => {
-    const src = programs.find((x) => x.id === id);
+  }, [listProgram, search, statusFilter]);
+  const duplicateProgram = (id: number) => {
+    const src = listProgram?.find((x) => x.id === id);
     if (!src) return;
-    const cloned: Program = JSON.parse(JSON.stringify(src));
-    cloned.id = crypto.randomUUID();
-    cloned.programName = `${src.programName} (Copy)`;
-    setPrograms((x) => [...x, cloned]);
-    setActiveId(cloned.id);
+    const cloned: TProgram = JSON.parse(JSON.stringify(src));
+    cloned.id = Math.random();
+    cloned.name = `${src.name} (Copy)`;
+
+    // setActiveId(cloned.id);
   };
-  const deleteProgram = (id: string) => {
-    const next = programs.filter((p) => p.id !== id);
-    setPrograms(next);
-    if (next.length) setActiveId(next[0].id);
+  const deleteProgram = (id: number) => {
+    const next = listProgram?.filter((p) => p.id !== id);
+
+    // if (next.length) setActiveId(next[0].id);
   };
 
-  const addPrize = () =>
-    setActiveProgramPatch({
-      prizes: [
-        ...activeProgram.prizes,
-        { id: crypto.randomUUID(), name: "", image: "", stock: 0, note: "" },
-      ],
-    });
+  const addPrize = () => {
+    //  setActiveProgramPatch({
+    //    prizes: [
+    //      ...activeProgram.prizes,
+    //      { id: crypto.randomUUID(), name: "", image: "", stock: 0, note: "" },
+    //    ],
+    //  });
+  };
   const updatePrize = (i: number, patch: Partial<Prize>) => {
-    const prizes = [...activeProgram.prizes];
-    prizes[i] = { ...prizes[i], ...patch } as Prize;
-    setActiveProgramPatch({ prizes });
+    // const prizes = [...activeProgram.prizes];
+    // prizes[i] = { ...prizes[i], ...patch } as Prize;
+    // setActiveProgramPatch({ prizes });
   };
   const removePrize = (i: number) => {
-    const prizes = [...activeProgram.prizes];
-    const removed = prizes.splice(i, 1)[0];
-    const normalPrizes = activeProgram.normalPrizes.filter(
-      (n) => n.prizeId !== removed.id
-    );
-    const specialNumbers = activeProgram.specialNumbers.map((s) =>
-      s.prizeId === removed.id ? { ...s, prizeId: undefined } : s
-    );
-    setActiveProgramPatch({ prizes, normalPrizes, specialNumbers });
+    // const prizes = [...activeProgram.prizes];
+    // const removed = prizes.splice(i, 1)[0];
+    // const normalPrizes = activeProgram.normalPrizes.filter(
+    //   (n) => n.prizeId !== removed.id
+    // );
+    // const specialNumbers = activeProgram.specialNumbers.map((s) =>
+    //   s.prizeId === removed.id ? { ...s, prizeId: undefined } : s
+    // );
+    // setActiveProgramPatch({ prizes, normalPrizes, specialNumbers });
   };
 
   const handleCsvFiles = async (files: FileList | null) => {
@@ -611,7 +436,7 @@ export default function ProgramPage() {
   const canAdd = !!newPhone.replace(/[^\d+]/g, "");
 
   const exportJson = () => {
-    const data = JSON.stringify({ programs, customers }, null, 2);
+    const data = JSON.stringify({ listProgram, customers }, null, 2);
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -735,13 +560,13 @@ export default function ProgramPage() {
       }))
       .filter((r) => r.phone);
 
-    setPrograms(programsImported);
+    // setPrograms(programsImported);
     setCustomers(
       importedCustomers.length ? importedCustomers : defaultCustomers
     );
-    if (programsImported[0]?.id) setActiveId(programsImported[0].id);
-    else if (programsImported.length === 0)
-      alert("Không có chương trình hợp lệ trong Excel");
+    // if (programsImported[0]?.id) setActiveId(programsImported[0].id);
+    // else if (programsImported.length === 0)
+    //   alert("Không có chương trình hợp lệ trong Excel");
   };
 
   return (
@@ -830,27 +655,6 @@ export default function ProgramPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <ArrowUpDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem
-                    className={sortBy === "name" ? "font-medium" : ""}
-                    onClick={() => setSortBy("name")}
-                  >
-                    Tên (A → Z)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className={sortBy === "prizes" ? "font-medium" : ""}
-                    onClick={() => setSortBy("prizes")}
-                  >
-                    Nhiều giải thưởng
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
 
             <ScrollArea>
@@ -864,7 +668,7 @@ export default function ProgramPage() {
 
             <ScrollArea className="h-[520px]">
               <div className="space-y-2">
-                {filteredPrograms.map((p) => {
+                {filteredPrograms?.map((p) => {
                   const active = p.id === activeId;
                   return (
                     <div
@@ -876,9 +680,9 @@ export default function ProgramPage() {
   `}
                     >
                       <div className="h-16 w-16 overflow-hidden rounded-lg ring-1 ring-border bg-muted/20">
-                        {p.image ? (
+                        {p.image_banner ? (
                           <img
-                            src={p.image}
+                            src={p.image_banner}
                             alt=""
                             className="h-full w-full object-cover"
                           />
@@ -892,21 +696,19 @@ export default function ProgramPage() {
 
                       <div className="min-w-0">
                         <div className="flex items-center flex-wrap gap-2">
-                          <div className="font-medium truncate">
-                            {p.programName}
-                          </div>
-                          {p.programCode ? (
+                          <div className="font-medium truncate">{p.name}</div>
+                          {p.code ? (
                             <span className="text-[11px] text-muted-foreground">
-                              • {p.programCode}
+                              • {p.code}
                             </span>
                           ) : null}
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                          <Badge variant={p.enabled ? "default" : "secondary"}>
-                            {p.enabled ? "Bật" : "Tắt"}
+                          <Badge variant={p.status ? "default" : "secondary"}>
+                            {p.status ? "Bật" : "Tắt"}
                           </Badge>
-                          <span>Giải: {p.prizes.length}</span>
-                          <span>Đặc biệt: {p.specialNumbers.length}</span>
+                          {/* <span>Giải: {p.prizes.length}</span> */}
+                          {/* <span>Đặc biệt: {p.specialNumbers.length}</span> */}
                         </div>
                       </div>
 
@@ -925,7 +727,7 @@ export default function ProgramPage() {
                           <DropdownMenuItem
                             onClick={() => {
                               setActiveId(p.id);
-                              duplicateProgram(p.id);
+                              // duplicateProgram(p.id);
                             }}
                             className="flex items-center gap-2"
                           >
@@ -940,7 +742,7 @@ export default function ProgramPage() {
                             Chỉnh sửa
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => deleteProgram(p.id)}
+                            // onClick={() => deleteProgram(p.id)}
                             className="flex items-center gap-2 text-red-600"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -952,7 +754,7 @@ export default function ProgramPage() {
                   );
                 })}
 
-                {filteredPrograms.length === 0 && (
+                {filteredPrograms?.length === 0 && (
                   <div className="text-center text-sm text-muted-foreground py-10">
                     Không tìm thấy chương trình
                   </div>
@@ -967,7 +769,6 @@ export default function ProgramPage() {
             steps={[
               { id: "info", label: "Thông tin" },
               { id: "prizes", label: "Giải thưởng" },
-              { id: "images", label: "Hình ảnh" },
               { id: "scenario", label: "Kịch bản" },
               { id: "client", label: "Khách hàng" },
             ]}
@@ -976,315 +777,16 @@ export default function ProgramPage() {
             defaultValue={step}
             value={step}
           >
-            {step === 0 && (
+            {step === 0 && activeProgram && (
               <InfoSection
                 activeProgram={activeProgram}
                 setActiveProgramPatch={setActiveProgramPatch}
                 setPreviewImage={setPreviewImage}
               />
             )}
-            {step === 1 && (
-              <div className="space-y-4 px-4">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">Danh mục giải</div>
-                  <Button size="sm" onClick={addPrize} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Thêm giải
-                  </Button>
-                </div>
-                <ScrollArea className="h-[360px] rounded-md border">
-                  <Table className="text-sm">
-                    <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                      <TableRow className="[&>th]:h-10 [&>th]:px-3">
-                        <TableHead className="w-10 text-center">#</TableHead>
-                        <TableHead className="min-w-[220px]">
-                          Tên giải
-                        </TableHead>
-                        <TableHead className="min-w-[220px]">
-                          Giải thưởng
-                        </TableHead>
-                        <TableHead className="min-w-[100px]">
-                          Hình ảnh
-                        </TableHead>
-                        <TableHead className="w-[120px] text-right">
-                          Số lượng giải
-                        </TableHead>
-                        <TableHead className="min-w-[160px]">Ghi chú</TableHead>
-                        <TableHead className="w-[90px] text-right">
-                          Hành động
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                      {activeProgram.prizes.map((pr, i) => (
-                        <TableRow
-                          key={pr.id}
-                          className="hover:bg-muted/50 transition-colors [&>td]:px-3 [&>td]:py-2"
-                        >
-                          <TableCell className="text-center">{i + 1}</TableCell>
-                          <TableCell>
-                            <Input
-                              value={pr.name}
-                              onChange={(e) =>
-                                updatePrize(i, { name: e.target.value })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              value={pr.prizeName}
-                              onChange={(e) =>
-                                updatePrize(i, { prizeName: e.target.value })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="relative group">
-                                {pr.image ? (
-                                  <img
-                                    src={pr.image}
-                                    alt=""
-                                    className="h-16 w-16 rounded-xl object-cover ring-1 ring-border transition group-hover:brightness-90"
-                                  />
-                                ) : (
-                                  <div className="h-16 w-16 rounded-xl ring-1 ring-border flex items-center justify-center text-[10px] text-muted-foreground bg-muted/30">
-                                    <ImageIcon className="h-3 w-3 mr-1" />
-                                    Trống
-                                  </div>
-                                )}
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      size="icon"
-                                      variant="secondary"
-                                      className="absolute right-1 top-1 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition"
-                                    >
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent
-                                    align="end"
-                                    sideOffset={6}
-                                  >
-                                    <DropdownMenuItem
-                                      className="flex items-center gap-2"
-                                      onClick={() =>
-                                        document
-                                          .getElementById(`pr-image-${i}`)
-                                          ?.click()
-                                      }
-                                    >
-                                      <Upload className="h-4 w-4" />
-                                      Đổi ảnh
-                                    </DropdownMenuItem>
-                                    {pr.image && (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          setPreviewImage(pr.image!)
-                                        }
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <Eye className="h-4 w-4" />
-                                          Xem ảnh
-                                        </div>
-                                      </DropdownMenuItem>
-                                    )}
-                                    {pr.image && (
-                                      <DropdownMenuItem
-                                        className="flex items-center gap-2 text-red-600"
-                                        onClick={() =>
-                                          updatePrize(i, { image: "" })
-                                        }
-                                      >
-                                        <Trash2
-                                          className="h-4 w-4"
-                                          color="oklch(57.7% 0.245 27.325)"
-                                        />
-                                        Xoá ảnh
-                                      </DropdownMenuItem>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                              <input
-                                id={`pr-image-${i}`}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const f = e.target.files?.[0];
-                                  if (!f) return;
-                                  updatePrize(i, {
-                                    image: await fileToDataUrl(f),
-                                  });
-                                }}
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Input
-                              inputMode="numeric"
-                              type="number"
-                              value={pr.stock}
-                              onChange={(e) =>
-                                updatePrize(i, {
-                                  stock: Number(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Textarea
-                              className="min-h-[38px]"
-                              value={pr.note || ""}
-                              onChange={(e) =>
-                                updatePrize(i, { note: e.target.value })
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ActionIcon
-                              label="Xoá"
-                              onClick={() => removePrize(i)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </ActionIcon>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {activeProgram.prizes.length === 0 && (
-                        <TableEmpty colSpan={6}>No prizes</TableEmpty>
-                      )}
-                    </TableBody>
-                  </Table>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              </div>
-            )}
+            {step === 1 && <PrizeSection code={activeProgram.code} />}
+
             {step === 2 && (
-              <div className="space-y-4 px-4">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">Hình ảnh chương trình</div>
-                  <div className="text-xs text-muted-foreground">
-                    PNG/JPG/WebP • ≤ 2MB
-                  </div>
-                </div>
-
-                <Tabs defaultValue="zalo" className="w-full">
-                  <TabsList className="rounded-xl bg-muted/40 p-1">
-                    <TabsTrigger value="zalo" className="rounded-lg px-3 py-2">
-                      Zalo mini app
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="landing"
-                      className="rounded-lg px-3 py-2"
-                    >
-                      Landing Page
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* Zalo mini app */}
-                  <TabsContent value="zalo" className="space-y-4 pt-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <ImageField
-                        label="Banner"
-                        hint="Tỉ lệ 3:1 • gợi ý 1500×500"
-                        value={activeProgram?.zalo?.banner || ""}
-                        onChange={async (file) =>
-                          setActiveProgramPatch({
-                            zalo: {
-                              ...(activeProgram?.zalo || {}),
-                              banner: await fileToDataUrl(file),
-                            },
-                          })
-                        }
-                        onClear={() =>
-                          setActiveProgramPatch({
-                            zalo: {
-                              ...(activeProgram?.zalo || {}),
-                              banner: "",
-                            },
-                          })
-                        }
-                      />
-
-                      <ImageField
-                        label="Thumbnail"
-                        hint="Tỉ lệ 1:1 • gợi ý 600×600"
-                        value={activeProgram?.zalo?.thumb || ""}
-                        onChange={async (file) =>
-                          setActiveProgramPatch({
-                            zalo: {
-                              ...(activeProgram?.zalo || {}),
-                              thumb: await fileToDataUrl(file),
-                            },
-                          })
-                        }
-                        onClear={() =>
-                          setActiveProgramPatch({
-                            zalo: {
-                              ...(activeProgram?.zalo || {}),
-                              thumb: "",
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                  </TabsContent>
-
-                  {/* Landing Page */}
-                  <TabsContent value="landing" className="space-y-4 pt-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <ImageField
-                        label="Thumbnail (x2 size)"
-                        hint="Tỉ lệ 16:9 • gợi ý 2400×1350"
-                        value={activeProgram?.landing?.thumb || ""}
-                        onChange={async (file) =>
-                          setActiveProgramPatch({
-                            landing: {
-                              ...activeProgram.landing,
-                              thumb: await fileToDataUrl(file),
-                            },
-                          })
-                        }
-                        onClear={() =>
-                          setActiveProgramPatch({
-                            landing: {
-                              ...activeProgram.landing,
-                              thumb: "",
-                            },
-                          })
-                        }
-                      />
-
-                      <ImageField
-                        label="Background"
-                        hint="Full HD trở lên • gợi ý ≥ 1920×1080"
-                        value={activeProgram?.landing?.background || ""}
-                        onChange={async (file) =>
-                          setActiveProgramPatch({
-                            landing: {
-                              ...activeProgram.landing,
-                              background: await fileToDataUrl(file),
-                            },
-                          })
-                        }
-                        onClear={() =>
-                          setActiveProgramPatch({
-                            landing: {
-                              ...activeProgram.landing,
-                              background: "",
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
-            {step === 3 && (
               <div className="space-y-6 px-4">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">Kịch bản chương trình</div>
@@ -1307,31 +809,21 @@ export default function ProgramPage() {
                     <div className="grid gap-3 md:grid-cols-2">
                       {[
                         {
-                          id: "cage",
+                          id: 0,
                           label: "Quay lồng cầu",
                           desc: "Trải nghiệm sự kiện trực tiếp",
                         },
                         {
-                          id: "online",
+                          id: 1,
                           label: "Quay online",
                           desc: "Tự động trên web/app",
                         },
                       ].map((opt) => {
-                        const checked =
-                          (activeProgram.scenario?.drawType ?? "online") ===
-                          opt.id;
+                        const checked = activeProgram.type === opt.id;
                         return (
                           <button
                             key={opt.id}
                             type="button"
-                            onClick={() =>
-                              setActiveProgramPatch({
-                                scenario: {
-                                  ...(activeProgram.scenario ?? {}),
-                                  drawType: opt.id as "cage" | "online",
-                                },
-                              })
-                            }
                             className={cn(
                               "group flex items-start gap-3 rounded-lg border p-3 text-left transition",
                               checked
@@ -1369,7 +861,7 @@ export default function ProgramPage() {
                   </CardContent>
                 </Card>
 
-                {activeProgram.scenario.drawType === "online" && (
+                {activeProgram.type === 0 && (
                   <Card className="border-muted/60">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base">
@@ -1389,19 +881,8 @@ export default function ProgramPage() {
                             <Input
                               type="number"
                               inputMode="numeric"
-                              value={activeProgram.scenario?.range?.min ?? 0}
-                              onChange={(e) =>
-                                setActiveProgramPatch({
-                                  scenario: {
-                                    ...(activeProgram.scenario ?? {}),
-                                    range: {
-                                      ...(activeProgram.scenario?.range ?? {}),
-                                      min: Number(e.target.value) || 0,
-                                    },
-                                  },
-                                })
-                              }
                               className="pr-10"
+                              value={activeProgram.number_start}
                             />
                             <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
                               A
@@ -1417,19 +898,8 @@ export default function ProgramPage() {
                             <Input
                               type="number"
                               inputMode="numeric"
-                              value={activeProgram.scenario?.range?.max ?? 0}
-                              onChange={(e) =>
-                                setActiveProgramPatch({
-                                  scenario: {
-                                    ...(activeProgram.scenario ?? {}),
-                                    range: {
-                                      ...(activeProgram.scenario?.range ?? {}),
-                                      max: Number(e.target.value) || 0,
-                                    },
-                                  },
-                                })
-                              }
                               className="pr-10"
+                              value={activeProgram.number_end}
                             />
                             <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
                               B
@@ -1444,21 +914,7 @@ export default function ProgramPage() {
                           <Input
                             type="number"
                             inputMode="numeric"
-                            value={activeProgram.scenario?.range?.repeat ?? 1}
-                            onChange={(e) =>
-                              setActiveProgramPatch({
-                                scenario: {
-                                  ...(activeProgram.scenario ?? {}),
-                                  range: {
-                                    ...(activeProgram.scenario?.range ?? {}),
-                                    repeat: Math.max(
-                                      1,
-                                      Number(e.target.value) || 1
-                                    ),
-                                  },
-                                },
-                              })
-                            }
+                            value={activeProgram.number_loop}
                           />
                         </div>
                       </div>
@@ -1468,17 +924,13 @@ export default function ProgramPage() {
                           Tổng lượt dãy:{" "}
                           {Math.max(
                             0,
-                            (activeProgram.scenario?.range?.max ?? 0) -
-                              (activeProgram.scenario?.range?.min ?? 0) +
+                            (activeProgram.number_end ?? 0) -
+                              (activeProgram.number_start ?? 0) +
                               1
-                          ) *
-                            Math.max(
-                              1,
-                              activeProgram.scenario?.range?.repeat ?? 1
-                            )}
+                          ) * Math.max(1, activeProgram.number_loop ?? 1)}
                         </Badge>
-                        {(activeProgram.scenario?.range?.min ?? 0) >
-                          (activeProgram.scenario?.range?.max ?? 0) && (
+                        {(activeProgram.number_start ?? 0) >
+                          (activeProgram.number_end ?? 0) && (
                           <span className="rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700 ring-1 ring-amber-200">
                             Lưu ý: A nên ≤ B
                           </span>
@@ -1488,7 +940,7 @@ export default function ProgramPage() {
                   </Card>
                 )}
 
-                {activeProgram.scenario.drawType === "online" && (
+                {activeProgram.type === 1 && (
                   <Card className="border-muted/60">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base">Số lẻ may mắn</CardTitle>
@@ -1501,22 +953,7 @@ export default function ProgramPage() {
                         <div className="text-sm text-muted-foreground">
                           Danh sách số lẻ
                         </div>
-                        <Button
-                          size="sm"
-                          className="gap-2"
-                          onClick={() =>
-                            setActiveProgramPatch({
-                              scenario: {
-                                ...(activeProgram.scenario ?? {}),
-                                singles: [
-                                  ...((activeProgram.scenario
-                                    ?.singles as any[]) ?? []),
-                                  { value: 0, repeat: 1, prizeId: "" },
-                                ],
-                              },
-                            })
-                          }
-                        >
+                        <Button size="sm" className="gap-2">
                           <Plus className="h-4 w-4" />
                           Thêm số
                         </Button>
@@ -1539,15 +976,8 @@ export default function ProgramPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                            {(activeProgram.scenario?.singles ?? []).map(
-                              (row: any, idx: number) => {
-                                const min =
-                                  activeProgram.scenario?.range?.min ?? 0;
-                                const max =
-                                  activeProgram.scenario?.range?.max ?? 0;
-                                const inRange =
-                                  row.value >= min && row.value <= max;
-
+                            {(rangeNumberOnline ?? []).map(
+                              (row, idx: number) => {
                                 return (
                                   <TableRow
                                     key={idx}
@@ -1557,31 +987,8 @@ export default function ProgramPage() {
                                       <Input
                                         type="number"
                                         inputMode="numeric"
-                                        value={row.value}
-                                        onChange={(e) => {
-                                          const v = Number(e.target.value) || 0;
-                                          const next = (
-                                            activeProgram.scenario?.singles ??
-                                            []
-                                          ).map((x: any, i: number) =>
-                                            i === idx ? { ...x, value: v } : x
-                                          );
-                                          setActiveProgramPatch({
-                                            scenario: {
-                                              ...(activeProgram.scenario ?? {}),
-                                              singles: next,
-                                            },
-                                          });
-                                        }}
-                                        className={cn(
-                                          inRange && "border-amber-400"
-                                        )}
+                                        value={row.number}
                                       />
-                                      {inRange && (
-                                        <div className="mt-1 text-[10px] text-amber-600">
-                                          Số này trùng dãy A→B
-                                        </div>
-                                      )}
                                     </TableCell>
 
                                     <TableCell className="text-right">
@@ -1589,58 +996,22 @@ export default function ProgramPage() {
                                         type="number"
                                         inputMode="numeric"
                                         value={row.repeat ?? 1}
-                                        onChange={(e) => {
-                                          const v = Math.max(
-                                            1,
-                                            Number(e.target.value) || 1
-                                          );
-                                          const next = (
-                                            activeProgram.scenario?.singles ??
-                                            []
-                                          ).map((x: any, i: number) =>
-                                            i === idx ? { ...x, repeat: v } : x
-                                          );
-                                          setActiveProgramPatch({
-                                            scenario: {
-                                              ...(activeProgram.scenario ?? {}),
-                                              singles: next,
-                                            },
-                                          });
-                                        }}
                                       />
                                     </TableCell>
 
                                     <TableCell>
-                                      <Select
-                                        value={row.prizeId ?? ""}
-                                        onValueChange={(val) => {
-                                          const next = (
-                                            activeProgram.scenario?.singles ??
-                                            []
-                                          ).map((x: any, i: number) =>
-                                            i === idx
-                                              ? { ...x, prizeId: val }
-                                              : x
-                                          );
-                                          setActiveProgramPatch({
-                                            scenario: {
-                                              ...(activeProgram.scenario ?? {}),
-                                              singles: next,
-                                            },
-                                          });
-                                        }}
-                                      >
+                                      <Select value={row.giftId ?? ""}>
                                         <SelectTrigger className="w-[260px]">
                                           <SelectValue placeholder="Chọn giải thưởng" />
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectGroup>
-                                            {activeProgram.prizes.map((p) => (
+                                            {gifts?.map((p) => (
                                               <SelectItem
                                                 key={p.id}
-                                                value={p.id}
+                                                value={p.id.toString()}
                                               >
-                                                {p.name}
+                                                {p.gift_name}
                                               </SelectItem>
                                             ))}
                                           </SelectGroup>
@@ -1652,20 +1023,6 @@ export default function ProgramPage() {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => {
-                                          const next = (
-                                            activeProgram.scenario?.singles ??
-                                            []
-                                          ).filter(
-                                            (_: any, i: number) => i !== idx
-                                          );
-                                          setActiveProgramPatch({
-                                            scenario: {
-                                              ...(activeProgram.scenario ?? {}),
-                                              singles: next,
-                                            },
-                                          });
-                                        }}
                                         aria-label="Xoá"
                                       >
                                         <Trash2 className="h-4 w-4" />
@@ -1676,8 +1033,7 @@ export default function ProgramPage() {
                               }
                             )}
 
-                            {(activeProgram.scenario?.singles ?? []).length ===
-                              0 && (
+                            {rangeNumberOnline.length === 0 && (
                               <TableRow>
                                 <TableCell
                                   colSpan={4}
@@ -1691,439 +1047,12 @@ export default function ProgramPage() {
                         </Table>
                         <ScrollBar orientation="vertical" />
                       </ScrollArea>
-
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <Badge variant="secondary">
-                          Tổng lượt dãy:{" "}
-                          {Math.max(
-                            0,
-                            (activeProgram.scenario?.range?.max ?? 0) -
-                              (activeProgram.scenario?.range?.min ?? 0) +
-                              1
-                          ) *
-                            Math.max(
-                              1,
-                              activeProgram.scenario?.range?.repeat ?? 1
-                            )}
-                        </Badge>
-                        <Badge>
-                          Số lẻ:{" "}
-                          {(activeProgram.scenario?.singles ?? []).length}
-                        </Badge>
-                      </div>
                     </CardContent>
                   </Card>
                 )}
               </div>
             )}
-            {step === 4 && (
-              <div className="space-y-6 px-4">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">Khách hàng</div>
-                  <div className="text-xs text-muted-foreground">
-                    Thông tin khách hàng tham gia chương trình
-                  </div>
-                </div>
-
-                {/* DANH SÁCH KHÁCH HÀNG + DRAG & DROP + LỊCH SỬ */}
-                <Card className="border-muted/60">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">
-                      Danh sách khách hàng
-                    </CardTitle>
-                    <CardDescription>
-                      Kéo-thả để sắp xếp ưu tiên
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Thêm nhanh */}
-                    <div className="rounded-lg border bg-muted/30 p-3">
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-12">
-                        <Input
-                          className="sm:col-span-3"
-                          placeholder="Tên KH"
-                          value={newName}
-                          onChange={(e) => setNewName(e.target.value)}
-                        />
-                        <Input
-                          className="sm:col-span-3"
-                          placeholder="Số điện thoại"
-                          value={newPhone}
-                          onChange={(e) => setNewPhone(e.target.value)}
-                        />
-                        <Input
-                          className="sm:col-span-3"
-                          placeholder="Mã khách hàng"
-                        />
-                        <Input
-                          className="sm:col-span-2"
-                          placeholder="Số lượt quay"
-                          type="number"
-                          inputMode="numeric"
-                          value={newAttempts}
-                          onChange={(e) => setNewAttempts(e.target.value)}
-                        />
-                        <Button
-                          className="sm:col-span-1"
-                          onClick={addOneCustomer}
-                          disabled={!canAdd}
-                        >
-                          Thêm
-                        </Button>
-                      </div>
-                      {!canAdd && newPhone.length > 0 && (
-                        <div className="mt-1 text-xs text-destructive">
-                          Số điện thoại không hợp lệ
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Import / Export */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileRef.current?.click()}
-                      >
-                        Tải CSV
-                      </Button>
-                      <Input
-                        ref={fileRef}
-                        type="file"
-                        accept=".csv,.txt"
-                        className="hidden"
-                        onChange={(e) => handleCsvFiles(e.target.files)}
-                      />
-                      <Button variant="outline" size="sm" onClick={exportJson}>
-                        Xuất JSON
-                      </Button>
-                      <div className="ml-auto text-xs text-muted-foreground">
-                        Kéo icon để sắp xếp. Nhấn đồng hồ để xem lịch sử.
-                      </div>
-                    </div>
-
-                    {/* Bảng với drag handle + history dialog */}
-                    <DndContext
-                      collisionDetection={closestCenter}
-                      onDragEnd={({ active, over }) => {
-                        if (!over || active.id === over.id) return;
-                        const oldIndex = customers.findIndex(
-                          (c) => String(c.index) === String(active.id)
-                        );
-                        const newIndex = customers.findIndex(
-                          (c) => String(c.index) === String(over.id)
-                        );
-                        const next = arrayMove(
-                          customers,
-                          oldIndex,
-                          newIndex
-                        ).map((c, i) => ({ ...c, index: i + 1 }));
-                        setCustomers(next);
-                      }}
-                    >
-                      <ScrollArea className="h-[360px] rounded-md border">
-                        <Table className="text-sm">
-                          <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                            <TableRow className="[&>th]:h-10 [&>th]:px-3">
-                              <TableHead className="w-6"></TableHead>
-                              <TableHead className="w-10 text-center">
-                                #
-                              </TableHead>
-                              <TableHead className="min-w-[180px]">
-                                Tên khách hàng
-                              </TableHead>
-                              <TableHead className="min-w-[160px]">
-                                Số điện thoại
-                              </TableHead>
-                              <TableHead className="min-w-[140px]">
-                                Mã KH
-                              </TableHead>
-                              <TableHead className="w-[120px] text-right">
-                                Số lượt quay
-                              </TableHead>
-                              <TableHead className="w-[130px] text-right">
-                                Hành động
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-
-                          <SortableContext
-                            items={customers.map((c) => String(c.index))}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                              {customers.map((c, i) => (
-                                <SortableRow key={c.index} id={String(c.index)}>
-                                  <TableCell className="px-3 py-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="cursor-grab active:cursor-grabbing"
-                                      {...useSortableHandle(String(c.index))}
-                                      aria-label="Kéo để sắp xếp"
-                                    >
-                                      <GripVertical className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-
-                                  <TableCell className="text-center px-3 py-2">
-                                    {i + 1}
-                                  </TableCell>
-
-                                  <TableCell className="px-3 py-2">
-                                    <Input
-                                      value={c.name ?? ""}
-                                      onChange={(e) =>
-                                        setCustomers((prev) =>
-                                          prev.map((r, idx) =>
-                                            idx === i
-                                              ? { ...r, name: e.target.value }
-                                              : r
-                                          )
-                                        )
-                                      }
-                                    />
-                                  </TableCell>
-
-                                  <TableCell className="px-3 py-2">
-                                    <Input
-                                      value={c.phone}
-                                      onChange={(e) =>
-                                        setCustomers((prev) =>
-                                          prev.map((r, idx) =>
-                                            idx === i
-                                              ? { ...r, phone: e.target.value }
-                                              : r
-                                          )
-                                        )
-                                      }
-                                    />
-                                  </TableCell>
-
-                                  <TableCell className="px-3 py-2">
-                                    <Input
-                                      value={(c as any).customerCode ?? ""}
-                                      onChange={(e) =>
-                                        setCustomers((prev) =>
-                                          prev.map((r, idx) =>
-                                            idx === i
-                                              ? ({
-                                                  ...r,
-                                                  customerCode: e.target.value,
-                                                } as any)
-                                              : r
-                                          )
-                                        )
-                                      }
-                                    />
-                                  </TableCell>
-
-                                  <TableCell className="px-3 py-2 text-right">
-                                    <Input
-                                      className="text-right"
-                                      type="number"
-                                      value={c.attempts}
-                                      onChange={(e) => {
-                                        const v = Number(e.target.value);
-                                        setCustomers((prev) =>
-                                          prev.map((r, idx) =>
-                                            idx === i
-                                              ? {
-                                                  ...r,
-                                                  attempts: Number.isFinite(v)
-                                                    ? v
-                                                    : 0,
-                                                }
-                                              : r
-                                          )
-                                        );
-                                      }}
-                                    />
-                                  </TableCell>
-
-                                  <TableCell className="px-3 py-2 text-right">
-                                    <div className="flex justify-end gap-1.5">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => {
-                                          setHistoryOf(c);
-                                          setOpenHistory(true);
-                                        }}
-                                        aria-label="Xem lịch sử"
-                                      >
-                                        <Clock className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() =>
-                                          setCustomers((prev) =>
-                                            prev.filter((_, idx) => idx !== i)
-                                          )
-                                        }
-                                        aria-label="Xoá"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </TableCell>
-                                </SortableRow>
-                              ))}
-
-                              {customers.length === 0 && (
-                                <TableRow>
-                                  <TableCell
-                                    colSpan={7}
-                                    className="h-[72px] text-center text-sm text-muted-foreground"
-                                  >
-                                    Chưa có dữ liệu
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </TableBody>
-                          </SortableContext>
-                        </Table>
-                        <ScrollBar orientation="vertical" />
-                      </ScrollArea>
-                    </DndContext>
-                  </CardContent>
-                </Card>
-
-                {/* NHẮC NHỞ KHÁCH HÀNG */}
-                <Card className="border-muted/60">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">
-                      Nhắc nhở tham gia bốc số
-                    </CardTitle>
-                    <CardDescription>
-                      Thiết lập kênh & lịch gửi (UI minh hoạ)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-3 md:grid-cols-3">
-                    <Select
-                      value={activeProgram.reminder?.channel ?? "sms"}
-                      onValueChange={(v) =>
-                        setActiveProgramPatch({
-                          reminder: {
-                            ...(activeProgram.reminder ?? {}),
-                            channel: v as "sms" | "zalo" | "email",
-                          },
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Kênh gửi" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sms">SMS</SelectItem>
-                        <SelectItem value="zalo">Zalo OA</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Input
-                      type="datetime-local"
-                      value={activeProgram.reminder?.sendAt ?? ""}
-                      onChange={(e) =>
-                        setActiveProgramPatch({
-                          reminder: {
-                            ...(activeProgram.reminder ?? {}),
-                            sendAt: e.target.value,
-                          },
-                        })
-                      }
-                    />
-
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={!!activeProgram.reminder?.enabled}
-                        onCheckedChange={(v) =>
-                          setActiveProgramPatch({
-                            reminder: {
-                              ...(activeProgram.reminder ?? {}),
-                              enabled: v,
-                            },
-                          })
-                        }
-                        id="reminder-enable"
-                      />
-                      <Label htmlFor="reminder-enable">Bật nhắc nhở</Label>
-                      <Button variant="outline" size="sm" className="ml-auto">
-                        Gửi thử
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* POPUP LỊCH SỬ */}
-                <Dialog open={openHistory} onOpenChange={setOpenHistory}>
-                  <DialogContent className="max-w-lg">
-                    <DialogHeader>
-                      <DialogTitle>Lịch sử khách hàng</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-2">
-                      {historyOf ? (
-                        <>
-                          <div className="text-sm">
-                            <span className="font-medium">
-                              {historyOf.name ?? "Không tên"}
-                            </span>{" "}
-                            <span className="text-muted-foreground">
-                              ({historyOf.phone})
-                            </span>
-                          </div>
-                          <div className="rounded-md border">
-                            <Table className="text-sm">
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Thời gian</TableHead>
-                                  <TableHead>Hành động</TableHead>
-                                  <TableHead>Kết quả</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {(historyByPhone[historyOf.phone] ?? []).map(
-                                  (h: any, i: number) => (
-                                    <TableRow key={i}>
-                                      <TableCell className="whitespace-nowrap">
-                                        {h.at}
-                                      </TableCell>
-                                      <TableCell>{h.action}</TableCell>
-                                      <TableCell>{h.result ?? "—"}</TableCell>
-                                    </TableRow>
-                                  )
-                                )}
-                                {(historyByPhone[historyOf.phone] ?? [])
-                                  .length === 0 && (
-                                  <TableRow>
-                                    <TableCell
-                                      colSpan={3}
-                                      className="text-center text-muted-foreground"
-                                    >
-                                      Chưa có lịch sử
-                                    </TableCell>
-                                  </TableRow>
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-sm text-muted-foreground">
-                          Chưa chọn khách hàng
-                        </div>
-                      )}
-                    </div>
-                    <DialogFooter>
-                      <Button onClick={() => setOpenHistory(false)}>
-                        Đóng
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            )}
+            {step === 3 && <CustomerSection code={activeProgram?.code} />}
           </Stepper>
         </Card>
         <Dialog
