@@ -2,8 +2,10 @@ import QUERY_KEY from "@/constants/key";
 import PATH from "@/constants/path";
 import { api } from "@/lib/axios";
 import {
+  addCustomer,
   addProgramPrize,
   deactiveProgramPrize,
+  deleteCustomer,
   getProgramDetailNumber,
   getProgramLuckyHistory,
   searchCustomer,
@@ -11,6 +13,10 @@ import {
   searchProgram,
   updateProgramInfo,
   updateProgramPrize,
+  type TAddCustomerReq,
+  type TAddCustomerRes,
+  type TDeleteCustomerReq,
+  type TDeleteCustomerRes,
   type TGetProgramDetailNumberReq,
   type TGetProgramDetailNumberRes,
   type TProgramLuckyHistoryReq,
@@ -47,6 +53,9 @@ export const useSearchCustomer = (params: TSearchProgramCustomerReq) => {
   return useQuery<TSearchProgramCustomerRes, AxiosError<null>>({
     queryKey: [QUERY_KEY.PROGRAM.CUSTOMER_LIST, params],
     queryFn: () => searchCustomer(params),
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -99,5 +108,17 @@ export const useAddProgramPrize = () => {
 export const useDeactiveProgramPrize = () => {
   return useMutation<TProgramPrizeRes, AxiosError<null>, TProgramPrizeReq>({
     mutationFn: deactiveProgramPrize,
+  });
+};
+
+export const useAddProgramCustomer = () => {
+  return useMutation<TAddCustomerRes, AxiosError<null>, TAddCustomerReq>({
+    mutationFn: addCustomer,
+  });
+};
+
+export const useDeleteProgramCustomer = () => {
+  return useMutation<TDeleteCustomerRes, AxiosError<null>, TDeleteCustomerReq>({
+    mutationFn: deleteCustomer,
   });
 };

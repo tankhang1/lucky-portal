@@ -12,6 +12,8 @@ const PATH = {
     ADD_PRIZE: "/program/add-gift",
     UPDATE_PRIZE: "/program/update-gift",
     DELETE_PRIZE: "/program/remove-gift",
+    ADD_CUSTOMER: "/program/add-customer",
+    DELETE_CUSTOMER: "/program/remove-consumer",
   },
 };
 export default PATH;

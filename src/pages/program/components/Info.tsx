@@ -122,7 +122,6 @@ export default function InfoSection({
           onSettled: () => {
             queryClient.invalidateQueries({
               queryKey: [QUERY_KEY.PROGRAM.LIST],
-              exact: true,
             });
           },
         }

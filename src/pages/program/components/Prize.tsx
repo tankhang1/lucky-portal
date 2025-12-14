@@ -364,7 +364,6 @@ const PrizeSection = ({ code }: { code: string }) => {
         onSettled: () => {
           queryClient.invalidateQueries({
             queryKey: [QUERY_KEY.PROGRAM.GIFT_LIST],
-            exact: true,
           });
         },
       });
@@ -380,7 +379,6 @@ const PrizeSection = ({ code }: { code: string }) => {
         onSettled: () => {
           queryClient.invalidateQueries({
             queryKey: [QUERY_KEY.PROGRAM.GIFT_LIST],
-            exact: true,
           });
         },
       });

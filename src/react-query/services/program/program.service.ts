@@ -205,3 +205,35 @@ export const deactiveProgramPrize = async (
   const { data } = await api.post(PATH.PROGRAM.DELETE_PRIZE, body);
   return data;
 };
+
+export type TCustomerForm = {
+  campaign_code: string;
+  consumer_code: string;
+  consumer_name: string;
+  consumer_phone: string;
+};
+export type TAddCustomerReq = TCustomerForm;
+export type TAddCustomerRes = {
+  data: any;
+  message: string;
+};
+export const addCustomer = async (
+  body: TAddCustomerReq
+): Promise<TAddCustomerRes> => {
+  const { data } = await api.post(PATH.PROGRAM.ADD_CUSTOMER, body);
+  return data;
+};
+export type TDeleteCustomerReq = {
+  campaign_code: string;
+  consumer_phone: string;
+};
+export type TDeleteCustomerRes = {
+  data: any;
+  message: string;
+};
+export const deleteCustomer = async (
+  body: TDeleteCustomerReq
+): Promise<TDeleteCustomerRes> => {
+  const { data } = await api.post(PATH.PROGRAM.DELETE_CUSTOMER, body);
+  return data;
+};

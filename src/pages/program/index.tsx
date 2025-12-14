@@ -1,6 +1,4 @@
-import { useMemo, useRef, useState } from "react";
-import * as XLSX from "xlsx";
-import { z } from "zod";
+import { useMemo, useState } from "react";
 import {
   Card,
   CardHeader,
@@ -25,9 +23,7 @@ import {
   Image as ImageIcon,
   Search,
   Copy,
-  UploadCloud,
   Pencil,
-  ArrowUpDown,
   Filter,
   Check,
 } from "lucide-react";
@@ -40,7 +36,6 @@ import {
   useSearchGift,
   useSearchProgram,
 } from "@/react-query/queries/program/program";
-import type { TProgram } from "@/react-query/services/program/program.service";
 import PrizeSection from "./components/Prize";
 import CustomerSection from "./components/Customer";
 import {
@@ -59,141 +54,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SelectItem } from "@radix-ui/react-select";
-const fileToDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-
-const prizeSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  prizeName: z.string().optional(),
-  image: z.string().optional().or(z.literal("")).optional(),
-  stock: z.number().int().nonnegative().default(0),
-  note: z.string().optional().default(""),
-});
-
-const normalPrizeSchema = z
-  .object({
-    prizeId: z.string(),
-    quantity: z.number().int().positive(),
-    min: z.number().int().nonnegative().default(0),
-    max: z.number().int().nonnegative().default(0),
-    defaultDrawsPerNumber: z.number().int().nonnegative().default(0),
-  })
-  .refine((r) => r.min <= r.max, { message: "Min phải <= Max" });
-
-const rangeSchema = z
-  .object({
-    min: z.number().int().nonnegative(),
-    max: z.number().int().nonnegative(),
-    defaultDrawsPerNumber: z.number().int().nonnegative().default(0),
-    overrides: z
-      .array(
-        z.object({
-          number: z.number().int().nonnegative(),
-          draws: z.number().int().nonnegative(),
-        })
-      )
-      .default([]),
-  })
-  .refine((r) => r.min <= r.max, { message: "Min phải <= Max" });
-
-const programSchema = z.object({
-  id: z.string(),
-  programName: z.string().min(1, "Nhập tên chương trình"),
-  programCode: z.string().optional().default(""),
-  slogan: z.string().optional().default(""),
-  image: z.string().optional().default(""),
-  enabled: z.boolean().default(true),
-  shortSummary: z.string().optional().default(""),
-  summary: z.string().optional().default(""),
-  rules: z.array(z.string()).default([]),
-  prizes: z.array(prizeSchema).default([]),
-  normalPrizes: z.array(normalPrizeSchema).default([]),
-  ranges: z.array(rangeSchema).default([]),
-  clientFields: z.array(z.string()).default([]),
-  reminder: z
-    .object({
-      enabled: z.boolean().default(false),
-      sendAt: z.string().optional().default(""),
-      message: z.string().optional().default(""),
-      channel: z.enum(["sms", "zalo", "email"]).optional(),
-    })
-    .default({
-      enabled: false,
-      sendAt: "",
-      message: "",
-    }),
-  zalo: z
-    .object({
-      banner: z.string().optional().default(""),
-      thumb: z.string().optional().default(""),
-    })
-    .default({
-      banner: "",
-      thumb: "",
-    }),
-  landing: z
-    .object({
-      background: z.string().optional().default(""),
-      thumb: z.string().optional().default(""),
-    })
-    .default({
-      background: "",
-      thumb: "",
-    }),
-  startedAt: z.string().optional(),
-  endedAt: z.string().optional(),
-  specialNumbers: z
-    .array(
-      z.object({
-        value: z.number().int().nonnegative(),
-        prize: z.string().min(1).optional(),
-        number: z.number().int().nonnegative().optional(),
-        draws: z.number().int().nonnegative().optional(),
-        prizeId: z.string().optional(),
-      })
-    )
-    .default([]),
-  scenario: z.object({
-    drawType: z.enum(["cage", "online"]).default("cage"),
-    range: z.object({
-      min: z.number().int().positive().default(0),
-      max: z.number().int().positive().default(9999),
-      repeat: z.number().int().positive().default(1),
-    }),
-    singles: z
-      .array(
-        z.object({
-          value: z.number().int().nonnegative(),
-          repeat: z.number().int().positive().default(1),
-          prizeId: z.string().optional(),
-        })
-      )
-      .default([]),
-  }),
-});
-
-type RangeRule = z.infer<typeof rangeSchema>;
-type Program = z.infer<typeof programSchema>;
-type CustomerRow = {
-  index: number;
-  name?: string;
-  phone: string;
-  attempts: number;
-};
-
-const defaultCustomers: CustomerRow[] = [
-  { index: 1, name: "Nguyen Van A", phone: "0901111222", attempts: 2 },
-  { index: 2, name: "Tran B", phone: "+84903111222", attempts: 1 },
-  { index: 3, name: "Le C", phone: "0987654321", attempts: 3 },
-  { index: 4, name: "", phone: "0912345678", attempts: 1 },
-  { index: 5, phone: "+84345678901", attempts: 2 },
-];
 
 export default function ProgramPage() {
   const { data: listProgram } = useSearchProgram({
@@ -203,12 +63,6 @@ export default function ProgramPage() {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<number>(-1);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [customers, setCustomers] = useState<CustomerRow[]>(defaultCustomers);
-  const [newName, setNewName] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [newAttempts, setNewAttempts] = useState<string>("");
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const excelRef = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState(0);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "enabled" | "disabled"
@@ -234,48 +88,7 @@ export default function ProgramPage() {
     });
   }, [activeProgram]);
 
-  const setActiveProgramPatch = (patch: Partial<TProgram>) => {};
-
-  const addProgram = () => {
-    // const p: TProgram = {
-    //   id: crypto.randomUUID(),
-    //   programCode: "",
-    //   programName: `Chương trình #${programs.length + 1}`,
-    //   image: "",
-    //   slogan: "",
-    //   enabled: true,
-    //   shortSummary: "",
-    //   summary: "",
-    //   zalo: {
-    //     banner: "",
-    //     thumb: "",
-    //   },
-    //   landing: {
-    //     background: "",
-    //     thumb: "",
-    //   },
-    //   rules: [],
-    //   prizes: [],
-    //   normalPrizes: [],
-    //   ranges: [],
-    //   clientFields: [],
-    //   specialNumbers: [],
-    //   reminder: {
-    //     enabled: false,
-    //     sendAt: "",
-    //     message: "",
-    //   },
-    //   startedAt: undefined,
-    //   endedAt: undefined,
-    //   scenario: {
-    //     drawType: "cage",
-    //     range: { min: 0, max: 9999, repeat: 1 },
-    //     singles: [],
-    //   },
-    // };
-    // setPrograms((x) => [...x, p]);
-    // setActiveId(p.id);
-  };
+  const addProgram = () => {};
   const stats = useMemo(() => {
     const total = listProgram?.length || 0;
     const enabled = listProgram?.filter((p) => p.status === 1).length || 0;
@@ -294,125 +107,6 @@ export default function ProgramPage() {
     return list;
   }, [listProgram, search, statusFilter]);
 
-  const importExcel = async (file: File) => {
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: "array" });
-    const toRows = (name: string) =>
-      XLSX.utils.sheet_to_json<any>(wb.Sheets[name] || {}, { defval: "" });
-    const toBool = (v: any) =>
-      String(v).trim().toLowerCase() === "true" ||
-      v === 1 ||
-      v === "1" ||
-      v === true;
-
-    const progRows = toRows("Programs");
-    if (!progRows.length) {
-      alert("Thiếu sheet 'Programs'");
-      return;
-    }
-
-    const programById: Record<string, Program> = {};
-    progRows.forEach((r: any, i: number) => {
-      const id = String(r.id || crypto.randomUUID());
-      programById[id] = {
-        id,
-        image: String(r.image || r.programImage || ""),
-        programName: String(
-          r.programName || r.name || `Chương trình #${i + 1}`
-        ),
-        landing: r.landing,
-        zalo: r.zalo,
-        shortSummary: String(r.shortSummary || ""),
-        programCode: String(r.programCode || r.code || ""),
-        clientFields: r.clientFields || [],
-        slogan: String(r.slogan || ""),
-        enabled: toBool(r.enabled ?? true),
-        summary: String(r.summary || ""),
-        rules: String(r.rules || "")
-          .split(/\r?\n/)
-          .map((s: string) => s.trim())
-          .filter(Boolean),
-        prizes: [],
-        normalPrizes: [],
-        ranges: [],
-        specialNumbers: [],
-        reminder: {
-          enabled: toBool(r.reminderEnabled ?? r.reminder?.enabled ?? false),
-          sendAt: String(r.reminderSendAt || r.reminder?.sendAt || ""),
-          message: String(r.reminderMessage || r.reminder?.message || ""),
-        },
-        startedAt: r.startedAt ? String(r.startedAt) : undefined,
-        endedAt: r.endedAt ? String(r.endedAt) : undefined,
-        scenario: {
-          drawType:
-            r.drawType === "cage" || r.drawType === "online"
-              ? r.drawType
-              : "online",
-          range: {
-            min: Number(r.rangeMin ?? 0) || 0,
-            max: Number(r.rangeMax ?? 9999) || 9999,
-            repeat: Number(r.rangeRepeat ?? 1) || 1,
-          },
-          singles: [],
-        },
-      };
-    });
-
-    const programsImported: Program[] = Object.values(programById);
-    const firstId = programsImported[0]?.id;
-
-    toRows("Prizes").forEach((r: any) => {
-      const pid = String(r.programId || r.program_id || firstId);
-      const p = programById[pid];
-      if (!p) return;
-      p.prizes.push({
-        id: String(r.prizeId || r.id || crypto.randomUUID()),
-        name: String(r.name || ""),
-        image: r.image ? String(r.image) : "",
-        stock: Number(r.stock ?? 0) || 0,
-        note: r.note ? String(r.note) : "",
-      });
-    });
-
-    toRows("NormalPrizes").forEach((r: any) => {
-      const pid = String(r.programId || r.program_id || firstId);
-      const p = programById[pid];
-      if (!p) return;
-      p.normalPrizes.push({
-        prizeId: String(r.prizeId || r.prize_id || ""),
-        quantity: Number(r.quantity ?? 1) || 1,
-        min: Number(r.min ?? 0) || 0,
-        max: Number(r.max ?? 0) || 0,
-        defaultDrawsPerNumber:
-          Number(r.defaultDrawsPerNumber ?? r.default ?? 0) || 0,
-      });
-    });
-
-    toRows("Specials").forEach((r: any) => {
-      const pid = String(r.programId || r.program_id || firstId);
-      const p = programById[pid];
-      if (!p) return;
-      p.specialNumbers.push({
-        value: Number(r.value ?? 0) || 0,
-        prize: r.prize ? String(r.prize) : undefined,
-        prizeId: r.prizeId ? String(r.prizeId) : undefined,
-      });
-    });
-
-    const custRows = toRows("Customers");
-    const importedCustomers: CustomerRow[] = custRows
-      .map((r: any, idx: number) => ({
-        index: Number(r.index ?? idx + 1),
-        phone: String(r.phone || r.sdt || r.number || ""),
-        attempts: Number(r.attempts ?? 0) || 0,
-      }))
-      .filter((r) => r.phone);
-
-    setCustomers(
-      importedCustomers.length ? importedCustomers : defaultCustomers
-    );
-  };
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -420,26 +114,6 @@ export default function ProgramPage() {
           <Sparkles className="h-6 w-6" /> Trình tạo chương trình giải thưởng
         </div>
         <div className="flex flex-wrap gap-2">
-          <input
-            ref={excelRef}
-            type="file"
-            accept=".xlsx,.xls"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) importExcel(f);
-              if (e.currentTarget) e.currentTarget.value = "";
-            }}
-          />
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => excelRef.current?.click()}
-          >
-            <UploadCloud className="h-4 w-4" />
-            Nhập Excel
-          </Button>
-
           <Button onClick={addProgram} className="gap-2">
             <Plus className="h-4 w-4" />
             Tạo chương trình
@@ -551,8 +225,6 @@ export default function ProgramPage() {
                           <Badge variant={p.status ? "default" : "secondary"}>
                             {p.status ? "Bật" : "Tắt"}
                           </Badge>
-                          {/* <span>Giải: {p.prizes.length}</span> */}
-                          {/* <span>Đặc biệt: {p.specialNumbers.length}</span> */}
                         </div>
                       </div>
 
