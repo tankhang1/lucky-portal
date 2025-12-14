@@ -24,6 +24,9 @@ import {
   Search,
   Filter,
   Check,
+  RotateCcwIcon,
+  ShieldCheck,
+  ShieldBan,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import Stepper from "@/components/stepper";
@@ -56,14 +59,15 @@ import ActionIcon from "@/components/action-icon";
 import { toast } from "react-toastify";
 import { queryClient } from "@/main";
 import QUERY_KEY from "@/constants/key";
+import type { TSearchProgramRes } from "@/react-query/services/program/program.service";
 
 export default function ProgramPage() {
-  const { data: listProgram } = useSearchProgram({
+  const { data: programs } = useSearchProgram({
     k: "",
   });
-  const { mutate: deleteProgramInfo, isPending: isDeletingProgramInfo } =
-    useDeleteProgramInfo();
+  const { mutate: deleteProgramInfo } = useDeleteProgramInfo();
   const [search, setSearch] = useState("");
+  const [listProgram, setListProgram] = useState<TSearchProgramRes>([]);
   const [activeId, setActiveId] = useState<number>(-1);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [step, setStep] = useState(0);
@@ -91,7 +95,45 @@ export default function ProgramPage() {
     });
   }, [activeProgram]);
 
-  const addProgram = () => {};
+  const addProgram = () => {
+    const now = new Date();
+    setListProgram((prev) => [
+      {
+        id: -1,
+        uuid: "",
+        code: "",
+        name: "",
+
+        time_create: now.toISOString(),
+        time_create_number: now.getTime(),
+        time_start: undefined,
+        time_start_number: 0,
+        time_end: undefined,
+        time_end_number: 0,
+        time_deactive: undefined,
+        time_deactive_number: 0,
+        time_active: undefined,
+        time_active_number: 0,
+
+        status: 0,
+        type: 1,
+
+        image_thumbnail: "",
+        image_banner: "",
+        pdf_link: "",
+        audio_link: "",
+
+        description: "",
+        description_short: "",
+
+        number_start: 0,
+        number_end: 0,
+        number_loop: 0,
+        number_extra: "",
+      },
+      ...prev,
+    ]);
+  };
   const onDeleteProgramInfo = (code: string) => {
     deleteProgramInfo(
       {
@@ -135,6 +177,11 @@ export default function ProgramPage() {
       setActiveId(listProgram?.[0]?.id);
     }
   }, [listProgram]);
+  useEffect(() => {
+    if (programs && programs.length > 0) {
+      setListProgram(programs);
+    }
+  }, [programs]);
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -150,7 +197,7 @@ export default function ProgramPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Card className="lg:col-span-4 xl:col-span-3">
+        <Card className="col-span-4">
           <CardHeader className="pb-3">
             <CardTitle>Danh sách chương trình</CardTitle>
             <CardDescription>Chọn, tìm kiếm, lọc</CardDescription>
@@ -234,18 +281,27 @@ export default function ProgramPage() {
                           <div className="font-medium truncate">{p.name}</div>
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                          <Badge variant={p.status ? "default" : "secondary"}>
-                            {p.status ? "Bật" : "Tắt"}
+                          <Badge
+                            variant={"outline"}
+                            className={cn(
+                              p.status === 1
+                                ? "border-emerald-200 text-emerald-700 bg-emerald-50"
+                                : "border-red-200 text-red-600",
+                              "text-xs!"
+                            )}
+                          >
+                            {p.status === 1 ? "Hoạt động" : "Tạm dừng"}
                           </Badge>
                         </div>
                       </div>
-
-                      <ActionIcon
-                        onClick={() => onDeleteProgramInfo(p.code)}
-                        label="Xoá"
-                      >
-                        <Trash2 className="h-4 w-4" color="red" />
-                      </ActionIcon>
+                      {p.status === 1 && (
+                        <ActionIcon
+                          onClick={() => onDeleteProgramInfo(p.code)}
+                          label={"Tạm dừng"}
+                        >
+                          <ShieldBan className="h-4 w-4" color="red" />
+                        </ActionIcon>
+                      )}
                     </div>
                   );
                 })}
@@ -260,7 +316,7 @@ export default function ProgramPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-8 xl:col-span-9">
+        <Card className="col-span-8">
           <Stepper
             steps={[
               { id: "info", label: "Thông tin" },
@@ -269,7 +325,13 @@ export default function ProgramPage() {
               { id: "client", label: "Khách hàng" },
             ]}
             orientation="horizontal"
-            onValueChange={setStep}
+            onValueChange={(value) => {
+              if (activeProgram?.code) {
+                setStep(value);
+              } else {
+                alert("Vui lòng hoàn thành bước 1");
+              }
+            }}
             defaultValue={step}
             value={step}
           >
@@ -281,267 +343,115 @@ export default function ProgramPage() {
             {step === 2 && (
               <div className="space-y-6 px-4">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium">Kịch bản chương trình</div>
-                  <Badge
-                    variant="secondary"
-                    className="rounded-md px-2.5 py-1 text-[11px]"
-                  >
-                    Thiết lập hình thức & dãy số
-                  </Badge>
+                  <div className="font-medium">Thiết lập giải extra</div>
                 </div>
 
                 <Card className="border-muted/60">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">
-                      Hình thức quay thưởng
-                    </CardTitle>
-                    <CardDescription>Áp dụng cho Landing Page</CardDescription>
+                    <CardTitle className="text-base">Số lẻ may mắn</CardTitle>
+                    <CardDescription>
+                      Thêm số ngoài dãy A→B, thiết lập lặp & giải thưởng
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {[
-                        {
-                          id: 0,
-                          label: "Quay lồng cầu",
-                          desc: "Trải nghiệm sự kiện trực tiếp",
-                        },
-                        {
-                          id: 1,
-                          label: "Quay online",
-                          desc: "Tự động trên web/app",
-                        },
-                      ].map((opt) => {
-                        const checked = activeProgram.type === opt.id;
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            className={cn(
-                              "group flex items-start gap-3 rounded-lg border p-3 text-left transition",
-                              checked
-                                ? "border-primary ring-2 ring-primary/20 bg-primary/5"
-                                : "hover:bg-muted/40"
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                "grid h-5 w-5 place-items-center rounded-full border transition",
-                                checked
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "border-muted-foreground/30 text-muted-foreground"
-                              )}
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                            </div>
-                            <div className="min-w-0">
-                              <div
-                                className={cn(
-                                  "text-sm",
-                                  checked ? "font-medium" : "text-foreground"
-                                )}
-                              >
-                                {opt.label}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {opt.desc}
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-muted-foreground">
+                        Danh sách số lẻ
+                      </div>
+                      <Button size="sm" className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Thêm số
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
 
-                {activeProgram.type === 0 && (
-                  <Card className="border-muted/60">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base">
-                        Dãy số may mắn
-                      </CardTitle>
-                      <CardDescription>
-                        Phạm vi A→B và số lần lặp cho mỗi số
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid gap-3 md:grid-cols-3">
-                        <div className="space-y-1">
-                          <div className="text-xs text-muted-foreground">
-                            Từ (A)
-                          </div>
-                          <div className="relative">
-                            <Input
-                              type="number"
-                              inputMode="numeric"
-                              className="pr-10"
-                              value={activeProgram.number_start}
-                            />
-                            <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
-                              A
-                            </span>
-                          </div>
-                        </div>
+                    <ScrollArea className="h-[300px] rounded-lg border">
+                      <Table className="text-sm">
+                        <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                          <TableRow className="[&>th]:h-9 [&>th]:px-3">
+                            <TableHead className="w-[120px] text-left">
+                              Số
+                            </TableHead>
+                            <TableHead className="w-[140px] text-left">
+                              Số lần lặp
+                            </TableHead>
+                            <TableHead>Giải thưởng</TableHead>
+                            <TableHead className="w-[92px] text-left">
+                              Hành động
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
+                          {(rangeNumberOnline ?? []).map((row, idx: number) => {
+                            return (
+                              <TableRow
+                                key={idx}
+                                className="[&>td]:px-3 [&>td]:py-2"
+                              >
+                                <TableCell className="text-right">
+                                  <Input
+                                    type="number"
+                                    inputMode="numeric"
+                                    value={row.number}
+                                  />
+                                </TableCell>
 
-                        <div className="space-y-1">
-                          <div className="text-xs text-muted-foreground">
-                            Đến (B)
-                          </div>
-                          <div className="relative">
-                            <Input
-                              type="number"
-                              inputMode="numeric"
-                              className="pr-10"
-                              value={activeProgram.number_end}
-                            />
-                            <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
-                              B
-                            </span>
-                          </div>
-                        </div>
+                                <TableCell className="text-right">
+                                  <Input
+                                    type="number"
+                                    inputMode="numeric"
+                                    value={row.repeat ?? 1}
+                                  />
+                                </TableCell>
 
-                        <div className="space-y-1">
-                          <div className="text-xs text-muted-foreground">
-                            Số lần lặp
-                          </div>
-                          <Input
-                            type="number"
-                            inputMode="numeric"
-                            value={activeProgram.number_loop}
-                          />
-                        </div>
-                      </div>
+                                <TableCell>
+                                  <Select value={row.giftId ?? ""}>
+                                    <SelectTrigger className="w-[260px]">
+                                      <SelectValue placeholder="Chọn giải thưởng" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectGroup>
+                                        {gifts?.map((p) => (
+                                          <SelectItem
+                                            key={p.id}
+                                            value={p.id.toString()}
+                                          >
+                                            {p.gift_name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectGroup>
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
 
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <Badge variant="secondary">
-                          Tổng lượt dãy:{" "}
-                          {Math.max(
-                            0,
-                            (activeProgram.number_end ?? 0) -
-                              (activeProgram.number_start ?? 0) +
-                              1
-                          ) * Math.max(1, activeProgram.number_loop ?? 1)}
-                        </Badge>
-                        {(activeProgram.number_start ?? 0) >
-                          (activeProgram.number_end ?? 0) && (
-                          <span className="rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700 ring-1 ring-amber-200">
-                            Lưu ý: A nên ≤ B
-                          </span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {activeProgram.type === 1 && (
-                  <Card className="border-muted/60">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base">Số lẻ may mắn</CardTitle>
-                      <CardDescription>
-                        Thêm số ngoài dãy A→B, thiết lập lặp & giải thưởng
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-muted-foreground">
-                          Danh sách số lẻ
-                        </div>
-                        <Button size="sm" className="gap-2">
-                          <Plus className="h-4 w-4" />
-                          Thêm số
-                        </Button>
-                      </div>
-
-                      <ScrollArea className="h-[300px] rounded-lg border">
-                        <Table className="text-sm">
-                          <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                            <TableRow className="[&>th]:h-9 [&>th]:px-3">
-                              <TableHead className="w-[120px] text-left">
-                                Số
-                              </TableHead>
-                              <TableHead className="w-[140px] text-left">
-                                Số lần lặp
-                              </TableHead>
-                              <TableHead>Giải thưởng</TableHead>
-                              <TableHead className="w-[92px] text-left">
-                                Hành động
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                            {(rangeNumberOnline ?? []).map(
-                              (row, idx: number) => {
-                                return (
-                                  <TableRow
-                                    key={idx}
-                                    className="[&>td]:px-3 [&>td]:py-2"
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label="Xoá"
                                   >
-                                    <TableCell className="text-right">
-                                      <Input
-                                        type="number"
-                                        inputMode="numeric"
-                                        value={row.number}
-                                      />
-                                    </TableCell>
-
-                                    <TableCell className="text-right">
-                                      <Input
-                                        type="number"
-                                        inputMode="numeric"
-                                        value={row.repeat ?? 1}
-                                      />
-                                    </TableCell>
-
-                                    <TableCell>
-                                      <Select value={row.giftId ?? ""}>
-                                        <SelectTrigger className="w-[260px]">
-                                          <SelectValue placeholder="Chọn giải thưởng" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectGroup>
-                                            {gifts?.map((p) => (
-                                              <SelectItem
-                                                key={p.id}
-                                                value={p.id.toString()}
-                                              >
-                                                {p.gift_name}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectGroup>
-                                        </SelectContent>
-                                      </Select>
-                                    </TableCell>
-
-                                    <TableCell className="text-right">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Xoá"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              }
-                            )}
-
-                            {rangeNumberOnline.length === 0 && (
-                              <TableRow>
-                                <TableCell
-                                  colSpan={4}
-                                  className="h-[72px] text-center text-sm text-muted-foreground"
-                                >
-                                  Chưa có số lẻ may mắn
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
                                 </TableCell>
                               </TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
-                        <ScrollBar orientation="vertical" />
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-                )}
+                            );
+                          })}
+
+                          {rangeNumberOnline.length === 0 && (
+                            <TableRow>
+                              <TableCell
+                                colSpan={4}
+                                className="h-[72px] text-center text-sm text-muted-foreground"
+                              >
+                                Chưa có số lẻ may mắn
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                      <ScrollBar orientation="vertical" />
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
               </div>
             )}
             {step === 3 && <CustomerSection code={activeProgram?.code} />}

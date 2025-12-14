@@ -187,30 +187,30 @@ const CustomerSection = ({ code }: TCustomerSection) => {
             <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
               {customers?.map((c, i) => (
                 <SortableRow key={c.id} id={String(c.id)}>
+                  {/* Index */}
                   <TableCell className="text-center px-3 py-2">
                     {i + 1}
                   </TableCell>
 
-                  <TableCell className="px-3 py-2">
-                    <Input value={c.consumer_name ?? ""} />
+                  {/* Name: Changed to text */}
+                  <TableCell className="px-3 py-2 font-medium">
+                    {c.consumer_name || "—"}
                   </TableCell>
 
+                  {/* Phone: Changed from Input to text */}
                   <TableCell className="px-3 py-2">
-                    <Input value={c.consumer_phone} />
+                    {c.consumer_phone}
                   </TableCell>
 
-                  <TableCell className="px-3 py-2">
-                    <Input value={c.consumer_code} />
-                  </TableCell>
+                  {/* Code: Changed from Input to text */}
+                  <TableCell className="px-3 py-2">{c.consumer_code}</TableCell>
 
+                  {/* Number Get: Changed from Input to text */}
                   <TableCell className="px-3 py-2 text-right">
-                    <Input
-                      className="text-right"
-                      type="number"
-                      value={c.number_get}
-                    />
+                    {c.number_get}
                   </TableCell>
 
+                  {/* Actions */}
                   <TableCell className="px-3 py-2 text-right">
                     <div className="flex justify-end gap-1.5">
                       <Button
