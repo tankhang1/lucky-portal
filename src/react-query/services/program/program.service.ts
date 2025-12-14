@@ -142,3 +142,66 @@ export const getProgramLuckyHistory = async (
   });
   return data;
 };
+
+export type TUpdateProgramInfoReq = {
+  code: string;
+  name: string;
+  time_start_number: number;
+  time_end_number: number;
+  image_thumbnail: string;
+  image_banner: string;
+  description: string;
+  description_short: string;
+  pdf_link: string;
+  audio_link: string;
+};
+export type TUpdateProgramInfoRes = {
+  data: any;
+  message: string;
+};
+export const updateProgramInfo = async (
+  body: TUpdateProgramInfoReq
+): Promise<TUpdateProgramInfoRes> => {
+  const { data } = await api.post(PATH.PROGRAM.UPDATE_INFO, body);
+  return data;
+};
+
+export type TProgramPrizeReq = {
+  campaign_code: string;
+  award_name: string;
+  gift_code: string;
+  gift_name: string;
+  gift_image: string;
+  gift_image_thumb: string;
+  limits: number;
+  type_extra: number;
+};
+
+export type TDeactiveProgramPrizeReq = {
+  campaign_code: string;
+  gift_code: string;
+};
+export type TProgramPrizeRes = {
+  data: any;
+  message: string;
+};
+export const updateProgramPrize = async (
+  body: TProgramPrizeReq
+): Promise<TProgramPrizeRes> => {
+  const { data } = await api.post(PATH.PROGRAM.UPDATE_PRIZE, body);
+  return data;
+};
+
+export const addProgramPrize = async (
+  body: TProgramPrizeReq
+): Promise<TProgramPrizeRes> => {
+  const { data } = await api.post(PATH.PROGRAM.ADD_PRIZE, body);
+  return data;
+};
+
+export const deactiveProgramPrize = async (
+  body: TProgramPrizeReq
+): Promise<TProgramPrizeRes> => {
+  const { data } = await api.post(PATH.PROGRAM.DELETE_PRIZE, body);
+  return data;
+};

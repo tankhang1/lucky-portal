@@ -31,7 +31,7 @@ import {
   Filter,
   Check,
 } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { IconDotsVertical } from "@tabler/icons-react";
 import Stepper from "@/components/stepper";
 import { cn } from "@/lib/utils";
@@ -178,7 +178,6 @@ const programSchema = z.object({
   }),
 });
 
-type Prize = z.infer<typeof prizeSchema>;
 type RangeRule = z.infer<typeof rangeSchema>;
 type Program = z.infer<typeof programSchema>;
 type CustomerRow = {
@@ -188,78 +187,6 @@ type CustomerRow = {
   attempts: number;
 };
 
-const parseCustomersCsv = async (file: File): Promise<CustomerRow[]> => {
-  const text = await file.text();
-  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  if (lines.length === 0) return [];
-  const split = (s: string) => s.split(/,|;|\t/).map((x) => x.trim());
-  const headerRaw = split(lines[0]).map((h) => h.toLowerCase());
-  const nameKeys = [
-    "name",
-    "customer_name",
-    "ten",
-    "họ tên",
-    "ho_ten",
-    "full_name",
-  ];
-  const phoneKeys = [
-    "phone",
-    "sdt",
-    "so_dien_thoai",
-    "so",
-    "number",
-    "số điện thoại",
-  ];
-  const attemptsKeys = [
-    "attempts",
-    "luot",
-    "tries",
-    "số lượt quay",
-    "luot_quay",
-  ];
-  const nameIdx = headerRaw.findIndex((h) => nameKeys.includes(h));
-  const phoneIdx = headerRaw.findIndex((h) => phoneKeys.includes(h));
-  const attemptsIdx = headerRaw.findIndex((h) => attemptsKeys.includes(h));
-  const looksLikeHeader = phoneIdx >= 0 || attemptsIdx >= 0 || nameIdx >= 0;
-
-  const rows: CustomerRow[] = [];
-  let idx = 1;
-  for (let i = looksLikeHeader ? 1 : 0; i < lines.length; i++) {
-    const cols = split(lines[i]);
-    let name = "";
-    let phone = "";
-    let attempts = 0;
-    if (looksLikeHeader) {
-      name = nameIdx >= 0 ? cols[nameIdx] || "" : "";
-      phone = phoneIdx >= 0 ? cols[phoneIdx] || "" : cols[0] || "";
-      attempts = attemptsIdx >= 0 ? Number(cols[attemptsIdx] || 0) : 0;
-    } else {
-      if (cols.length >= 3) {
-        name = cols[0] || "";
-        phone = cols[1] || "";
-        attempts = Number(cols[2] || 0) || 0;
-      } else if (cols.length === 2) {
-        name = "";
-        phone = cols[0] || "";
-        attempts = Number(cols[1] || 0) || 0;
-      } else {
-        name = "";
-        phone = cols[0] || "";
-        attempts = 0;
-      }
-    }
-    const normPhone = (phone || "").replace(/[^\d+]/g, "");
-    if (!normPhone) continue;
-    rows.push({
-      index: idx++,
-      name: name?.trim() ? name.trim() : undefined,
-      phone: normPhone,
-      attempts: Number.isFinite(attempts) ? attempts : 0,
-    });
-  }
-  return rows;
-};
-
 const defaultCustomers: CustomerRow[] = [
   { index: 1, name: "Nguyen Van A", phone: "0901111222", attempts: 2 },
   { index: 2, name: "Tran B", phone: "+84903111222", attempts: 1 },
@@ -267,9 +194,6 @@ const defaultCustomers: CustomerRow[] = [
   { index: 4, name: "", phone: "0912345678", attempts: 1 },
   { index: 5, phone: "+84345678901", attempts: 2 },
 ];
-
-const coveredByRanges = (ranges: RangeRule[], n: number) =>
-  ranges.some((r) => n >= r.min && n <= r.max);
 
 export default function ProgramPage() {
   const { data: listProgram } = useSearchProgram({
@@ -369,82 +293,6 @@ export default function ProgramPage() {
     }
     return list;
   }, [listProgram, search, statusFilter]);
-  const duplicateProgram = (id: number) => {
-    const src = listProgram?.find((x) => x.id === id);
-    if (!src) return;
-    const cloned: TProgram = JSON.parse(JSON.stringify(src));
-    cloned.id = Math.random();
-    cloned.name = `${src.name} (Copy)`;
-
-    // setActiveId(cloned.id);
-  };
-  const deleteProgram = (id: number) => {
-    const next = listProgram?.filter((p) => p.id !== id);
-
-    // if (next.length) setActiveId(next[0].id);
-  };
-
-  const addPrize = () => {
-    //  setActiveProgramPatch({
-    //    prizes: [
-    //      ...activeProgram.prizes,
-    //      { id: crypto.randomUUID(), name: "", image: "", stock: 0, note: "" },
-    //    ],
-    //  });
-  };
-  const updatePrize = (i: number, patch: Partial<Prize>) => {
-    // const prizes = [...activeProgram.prizes];
-    // prizes[i] = { ...prizes[i], ...patch } as Prize;
-    // setActiveProgramPatch({ prizes });
-  };
-  const removePrize = (i: number) => {
-    // const prizes = [...activeProgram.prizes];
-    // const removed = prizes.splice(i, 1)[0];
-    // const normalPrizes = activeProgram.normalPrizes.filter(
-    //   (n) => n.prizeId !== removed.id
-    // );
-    // const specialNumbers = activeProgram.specialNumbers.map((s) =>
-    //   s.prizeId === removed.id ? { ...s, prizeId: undefined } : s
-    // );
-    // setActiveProgramPatch({ prizes, normalPrizes, specialNumbers });
-  };
-
-  const handleCsvFiles = async (files: FileList | null) => {
-    const f = files?.[0];
-    if (!f) return;
-    const rows = await parseCustomersCsv(f);
-    setCustomers(rows);
-  };
-
-  const addOneCustomer = () => {
-    const phone = newPhone.replace(/[^\d+]/g, "");
-    const attempts = Number(newAttempts) || 0;
-    if (!phone) return;
-    setCustomers((prev) => [
-      ...prev,
-      {
-        index: prev.length + 1,
-        name: newName.trim() || undefined,
-        phone,
-        attempts,
-      },
-    ]);
-    setNewName("");
-    setNewPhone("");
-    setNewAttempts("");
-  };
-  const canAdd = !!newPhone.replace(/[^\d+]/g, "");
-
-  const exportJson = () => {
-    const data = JSON.stringify({ listProgram, customers }, null, 2);
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "prize-config.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   const importExcel = async (file: File) => {
     const buf = await file.arrayBuffer();
@@ -560,13 +408,9 @@ export default function ProgramPage() {
       }))
       .filter((r) => r.phone);
 
-    // setPrograms(programsImported);
     setCustomers(
       importedCustomers.length ? importedCustomers : defaultCustomers
     );
-    // if (programsImported[0]?.id) setActiveId(programsImported[0].id);
-    // else if (programsImported.length === 0)
-    //   alert("Không có chương trình hợp lệ trong Excel");
   };
 
   return (
@@ -778,11 +622,7 @@ export default function ProgramPage() {
             value={step}
           >
             {step === 0 && activeProgram && (
-              <InfoSection
-                activeProgram={activeProgram}
-                setActiveProgramPatch={setActiveProgramPatch}
-                setPreviewImage={setPreviewImage}
-              />
+              <InfoSection activeProgram={activeProgram} />
             )}
             {step === 1 && <PrizeSection code={activeProgram.code} />}
 
@@ -1059,6 +899,7 @@ export default function ProgramPage() {
           open={previewImage !== null}
           onOpenChange={() => setPreviewImage(null)}
         >
+          <DialogTitle></DialogTitle>
           <DialogContent>
             <img
               src={previewImage!}

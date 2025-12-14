@@ -8,6 +8,10 @@ const PATH = {
     CUSTOMER: "/collect/consumer/list",
     CUSTOMER_LUCKY_HISTORY: "zalo/campaign/detail/number",
     LUCKY_HISTORY: "/zalo/campaign/lucky/history",
+    UPDATE_INFO: "/program/update",
+    ADD_PRIZE: "/program/add-gift",
+    UPDATE_PRIZE: "/program/update-gift",
+    DELETE_PRIZE: "/program/remove-gift",
   },
 };
 export default PATH;

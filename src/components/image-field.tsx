@@ -12,7 +12,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Image as ImageIcon,
   MoreHorizontal,
@@ -146,6 +151,7 @@ export function ImageField({
 
         <Dialog open={!!preview} onOpenChange={() => setPreview(null)}>
           <DialogTrigger asChild></DialogTrigger>
+          <DialogTitle></DialogTitle>
           <DialogContent className="max-w-3xl">
             {preview ? (
               <img

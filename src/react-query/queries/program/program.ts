@@ -2,23 +2,31 @@ import QUERY_KEY from "@/constants/key";
 import PATH from "@/constants/path";
 import { api } from "@/lib/axios";
 import {
+  addProgramPrize,
+  deactiveProgramPrize,
   getProgramDetailNumber,
   getProgramLuckyHistory,
   searchCustomer,
   searchGift,
   searchProgram,
+  updateProgramInfo,
+  updateProgramPrize,
   type TGetProgramDetailNumberReq,
   type TGetProgramDetailNumberRes,
   type TProgramLuckyHistoryReq,
   type TProgramLuckyHistoryRes,
+  type TProgramPrizeReq,
+  type TProgramPrizeRes,
   type TSearchProgramCustomerReq,
   type TSearchProgramCustomerRes,
   type TSearchProgramGiftReq,
   type TSearchProgramGiftRes,
   type TSearchProgramReq,
   type TSearchProgramRes,
+  type TUpdateProgramInfoReq,
+  type TUpdateProgramInfoRes,
 } from "@/react-query/services/program/program.service";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 
 export const useSearchProgram = (params: TSearchProgramReq) => {
@@ -63,5 +71,33 @@ export const useGetProgramLuckyHistory = (params: TProgramLuckyHistoryReq) => {
     refetchOnMount: true,
     refetchOnReconnect: true,
     refetchOnWindowFocus: true,
+  });
+};
+
+export const useUpdateProgramInfo = () => {
+  return useMutation<
+    TUpdateProgramInfoRes,
+    AxiosError<null>,
+    TUpdateProgramInfoReq
+  >({
+    mutationFn: updateProgramInfo,
+  });
+};
+
+export const useUpdateProgramPrize = () => {
+  return useMutation<TProgramPrizeRes, AxiosError<null>, TProgramPrizeReq>({
+    mutationFn: updateProgramPrize,
+  });
+};
+
+export const useAddProgramPrize = () => {
+  return useMutation<TProgramPrizeRes, AxiosError<null>, TProgramPrizeReq>({
+    mutationFn: addProgramPrize,
+  });
+};
+
+export const useDeactiveProgramPrize = () => {
+  return useMutation<TProgramPrizeRes, AxiosError<null>, TProgramPrizeReq>({
+    mutationFn: deactiveProgramPrize,
   });
 };

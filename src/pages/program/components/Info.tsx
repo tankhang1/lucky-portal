@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,60 +8,62 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import dayjs from "dayjs";
+// Added Music and AudioLines icons
 import {
   Eye,
-  MoreHorizontal,
   Trash2,
   Upload,
-  Image as ImageIcon,
   FileText,
   Download,
+  Music,
+  AudioLines,
+  SaveIcon,
+  Loader,
 } from "lucide-react";
 import JoditEditor from "jodit-react";
 import type { TProgram } from "@/react-query/services/program/program.service";
 import { Tabs } from "@/components/ui/tabs";
 import { ImageField } from "@/components/image-field";
+import { IconBrandMiniprogram } from "@tabler/icons-react";
+import { useUpdateProgramInfo } from "@/react-query/queries/program/program";
+import { toast } from "react-toastify";
+import { queryClient } from "@/main";
+import QUERY_KEY from "@/constants/key";
 
 export default function InfoSection({
   activeProgram,
-  setActiveProgramPatch,
-  setPreviewImage,
 }: {
   activeProgram: TProgram;
-  setActiveProgramPatch: (patch: Record<string, TProgram>) => void;
-  setPreviewImage: (src: string) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const pdfInputRef = useRef<HTMLInputElement | null>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const [pdfDragOver, setPdfDragOver] = useState(false);
+  const { mutate: updateProgram, isPending: isUpdatingProgram } =
+    useUpdateProgramInfo();
+  const [formData, setFormData] = useState<TProgram>(activeProgram);
 
-  async function fileToDataUrl(file: File) {
+  useEffect(() => {
+    setFormData(activeProgram);
+  }, [activeProgram]);
+
+  const updateField = (key: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const pdfInputRef = useRef<HTMLInputElement | null>(null);
+  const voiceInputRef = useRef<HTMLInputElement | null>(null); // Ref for audio input
+
+  const [pdfDragOver, setPdfDragOver] = useState(false);
+  const [voiceDragOver, setVoiceDragOver] = useState(false); // State for audio drag
+
+  const fileToDataUrl = async (file: File) => {
     return await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result));
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-  }
+  };
 
-  async function handleImage(f?: File | null) {
-    if (!f) return;
-    if (!f.type.startsWith("image/")) return;
-    if (f.size > 2 * 1024 * 1024) {
-      alert("Vui lòng chọn ảnh ≤ 2MB");
-      return;
-    }
-    // setActiveProgramPatch({ im: await fileToDataUrl(f) });
-  }
-
-  async function handlePdf(f?: File | null) {
+  const handlePdf = async (f?: File | null) => {
     if (!f) return;
     if (f.type !== "application/pdf") {
       alert("Chỉ chấp nhận PDF");
@@ -72,39 +74,79 @@ export default function InfoSection({
       return;
     }
     const dataUrl = await fileToDataUrl(f);
-    // setActiveProgramPatch({
-    //   rulesPdf: dataUrl,
-    //   rulesPdfName: f.name,
-    //   rulesPdfSize: f.size,
-    // });
-  }
+    updateField("pdf_link", dataUrl);
+  };
 
-  function prettySize(bytes?: number) {
-    if (!bytes && bytes !== 0) return "";
-    const units = ["B", "KB", "MB", "GB"];
-    let i = 0;
-    let n = bytes;
-    while (n >= 1024 && i < units.length - 1) {
-      n /= 1024;
-      i++;
+  // New: Handle Audio Files
+  const handleVoice = async (f?: File | null) => {
+    if (!f) return;
+    // Basic check for audio types
+    if (!f.type.startsWith("audio/")) {
+      alert("Chỉ chấp nhận file âm thanh (MP3, WAV, M4A...)");
+      return;
     }
-    return `${n.toFixed(1)} ${units[i]}`;
-  }
-
+    if (f.size > 10 * 1024 * 1024) {
+      alert("Vui lòng chọn file âm thanh ≤ 10MB");
+      return;
+    }
+    const dataUrl = await fileToDataUrl(f);
+    updateField("audio_link", dataUrl);
+  };
+  const handleUpdate = () => {
+    if (activeProgram) {
+      updateProgram(
+        {
+          code: formData.code,
+          description: formData.description,
+          time_start_number: +dayjs(new Date(formData.time_start || "")).format(
+            "YYYYMMDDHHmm"
+          ),
+          time_end_number: +dayjs(new Date(formData.time_end || "")).format(
+            "YYYYMMDDHHmm"
+          ),
+          audio_link: formData.audio_link || "",
+          description_short: formData.description_short,
+          image_banner: formData.image_banner,
+          image_thumbnail: formData.image_thumbnail,
+          name: formData.name,
+          pdf_link: formData.pdf_link || "",
+        },
+        {
+          onSuccess: (data) => {
+            toast.success(data.message);
+          },
+          onError: (error) => {
+            //@ts-expect-error no check
+            toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+          },
+          onSettled: () => {
+            queryClient.invalidateQueries({
+              queryKey: [QUERY_KEY.PROGRAM.LIST],
+              exact: true,
+            });
+          },
+        }
+      );
+    }
+    console.log("form", formData);
+  };
   return (
     <CardContent className="space-y-6 w-full">
       <Card className="border-dashed">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              className="opacity-70"
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <IconBrandMiniprogram />
+              Thông tin chương trình
+            </div>
+            <Button
+              className="font-medium!"
+              onClick={handleUpdate}
+              disabled={isUpdatingProgram}
             >
-              <circle cx="8" cy="8" r="8" />
-            </svg>
-            Thông tin chương trình
+              {isUpdatingProgram ? <Loader /> : <SaveIcon />}
+              {isUpdatingProgram ? "Đang xử lí..." : " Lưu"}
+            </Button>
           </CardTitle>
           <CardDescription>
             <div className="space-y-2">
@@ -115,7 +157,8 @@ export default function InfoSection({
                       Mã chương trình
                     </div>
                     <Input
-                      value={activeProgram.code || ""}
+                      value={formData.code || ""}
+                      onChange={(e) => updateField("code", e.target.value)}
                       placeholder="Mã chương trình"
                       className="max-w-40 uppercase font-medium"
                     />
@@ -125,7 +168,8 @@ export default function InfoSection({
                       Tên chương trình
                     </div>
                     <Input
-                      value={activeProgram.name}
+                      value={formData.name}
+                      onChange={(e) => updateField("name", e.target.value)}
                       className="flex-1"
                       placeholder="Tên chương trình"
                     />
@@ -135,13 +179,14 @@ export default function InfoSection({
                       Trạng thái
                     </div>
                     <button
+                      onClick={() => updateField("status", !formData.status)}
                       className={`shrink-0 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] cursor-pointer transition ${
-                        activeProgram.status
+                        formData.status
                           ? "border-emerald-200 text-emerald-700 bg-emerald-50"
                           : "bg-neutral-50 border-neutral-200 text-neutral-600"
                       }`}
                     >
-                      {activeProgram.status ? "Đang bật" : "Đang tắt"}
+                      {formData.status ? "Đang bật" : "Đang tắt"}
                     </button>
                   </div>
                 </div>
@@ -159,22 +204,22 @@ export default function InfoSection({
               </div>
             </div>
 
-            <Tabs defaultValue="zalo" className="w-full">
+            <Tabs defaultValue="banner" className="w-full">
               <div className="grid gap-4 md:grid-cols-2">
                 <ImageField
                   label="Banner"
                   hint="Tỉ lệ 3:1 • gợi ý 1500×500"
-                  value={activeProgram?.image_banner || ""}
-                  onChange={() => {}}
-                  onClear={() => {}}
+                  value={formData?.image_banner || ""}
+                  onChange={(val) => updateField("image_banner", val)}
+                  onClear={() => updateField("image_banner", null)}
                 />
 
                 <ImageField
                   label="Thumbnail"
                   hint="Tỉ lệ 1:1 • gợi ý 600×600"
-                  value={activeProgram?.image_thumbnail || ""}
-                  onChange={() => {}}
-                  onClear={() => {}}
+                  value={formData?.image_thumbnail || ""}
+                  onChange={(val) => updateField("image_thumbnail", val)}
+                  onClear={() => updateField("image_thumbnail", null)}
                 />
               </div>
             </Tabs>
@@ -190,7 +235,8 @@ export default function InfoSection({
                   <div className="text-xs text-muted-foreground">Bắt đầu</div>
                   <Input
                     type="datetime-local"
-                    value={activeProgram.time_start}
+                    value={formData.time_start || ""}
+                    onChange={(e) => updateField("time_start", e.target.value)}
                     className="!text-xs"
                   />
                 </div>
@@ -198,8 +244,9 @@ export default function InfoSection({
                   <div className="text-xs text-muted-foreground">Kết thúc</div>
                   <Input
                     type="datetime-local"
-                    value={activeProgram.time_end}
-                    min={activeProgram.time_start}
+                    value={formData.time_end || ""}
+                    onChange={(e) => updateField("time_end", e.target.value)}
+                    min={formData.time_start}
                     className="!text-xs"
                   />
                 </div>
@@ -227,7 +274,7 @@ export default function InfoSection({
                 await handlePdf(e.dataTransfer.files?.[0]);
               }}
             >
-              {!activeProgram.pdf_link ? (
+              {!formData.pdf_link ? (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <FileText className="h-5 w-5" />
@@ -247,7 +294,7 @@ export default function InfoSection({
                     <FileText className="h-5 w-5" />
                     <div className="min-w-0">
                       <div className="text-sm truncate">
-                        {activeProgram.pdf_link || "file.pdf"}
+                        {formData.pdf_link || "file.pdf"}
                       </div>
                     </div>
                   </div>
@@ -255,16 +302,14 @@ export default function InfoSection({
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() =>
-                        window.open(activeProgram.pdf_link, "_blank")!
-                      }
+                      onClick={() => window.open(formData.pdf_link, "_blank")!}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Xem
                     </Button>
                     <a
-                      href={activeProgram.pdf_link}
-                      download={activeProgram.pdf_link || "rules.pdf"}
+                      href={formData.pdf_link}
+                      download={formData.pdf_link || "rules.pdf"}
                       className="inline-flex"
                     >
                       <Button size="sm" variant="secondary">
@@ -272,7 +317,11 @@ export default function InfoSection({
                         Tải
                       </Button>
                     </a>
-                    <Button size="sm" variant="destructive">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => updateField("pdf_link", null)}
+                    >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Xoá
                     </Button>
@@ -289,28 +338,100 @@ export default function InfoSection({
             </div>
           </div>
 
+          {/* -------------------------------------------------------- */}
+          {/* NEW: VOICE / AUDIO UPLOADER SECTION                      */}
+          {/* -------------------------------------------------------- */}
+          <div className="space-y-2">
+            <div className="text-sm font-medium">
+              Tệp âm thanh (Voice giới thiệu)
+            </div>
+            <div
+              className={`relative rounded-lg border border-dashed p-4 transition ${
+                voiceDragOver ? "bg-muted/30" : "bg-muted/10"
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setVoiceDragOver(true);
+              }}
+              onDragLeave={() => setVoiceDragOver(false)}
+              onDrop={async (e) => {
+                e.preventDefault();
+                setVoiceDragOver(false);
+                await handleVoice(e.dataTransfer.files?.[0]);
+              }}
+            >
+              {!formData.audio_link ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <AudioLines className="h-5 w-5" />
+                    <span>Kéo & thả file âm thanh hoặc</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => voiceInputRef.current?.click()}
+                  >
+                    <Music className="h-4 w-4 mr-2" />
+                    Tải Voice
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Music className="h-5 w-5 text-emerald-600" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-emerald-700">
+                          Đã tải lên tệp âm thanh
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => updateField("audio_link", null)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Xoá
+                    </Button>
+                  </div>
+                  {/* Audio Preview Player */}
+                  <audio
+                    controls
+                    className="w-full h-8 block"
+                    src={formData.audio_link}
+                  />
+                </div>
+              )}
+              <input
+                ref={voiceInputRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={async (e) => handleVoice(e.target.files?.[0] || null)}
+              />
+            </div>
+          </div>
+          {/* -------------------------------------------------------- */}
+
           <div className="space-y-2">
             <div className="text-sm font-medium">Mô tả ngắn</div>
             <div>
               <JoditEditor
-                value={activeProgram.description_short}
+                value={formData.description_short}
                 config={{
                   readonly: false,
                   height: 300,
                   placeholder: "Giới thiệu ngắn gọn về chương trình...",
                   beautifyHTML: true,
-                  showXPathInStatusbar: false,
-                  showCharsCounter: false,
-                  showWordsCounter: false,
-                  askBeforePasteHTML: false, // optional: avoid paste dialog
-                  defaultActionOnPaste: "insert_as_html", // optional: default action on paste
                   defaultMode: 1,
                   buttons:
                     "bold,italic,underline,ul,ol,font,brush,paragraph,left,right,center,justify,undo,redo",
                 }}
                 tabIndex={1}
                 className="text-sm"
-                onChange={(newContent) => {}}
+                onBlur={(newContent) =>
+                  updateField("description_short", newContent)
+                }
               />
             </div>
           </div>
@@ -320,24 +441,19 @@ export default function InfoSection({
             </div>
             <div>
               <JoditEditor
-                value={activeProgram.description}
+                value={formData.description}
                 config={{
                   readonly: false,
                   height: 700,
                   placeholder: "Giới thiệu về chương trình...",
                   beautifyHTML: true,
-                  showXPathInStatusbar: false,
-                  showCharsCounter: false,
-                  showWordsCounter: false,
-                  askBeforePasteHTML: false, // optional: avoid paste dialog
-                  defaultActionOnPaste: "insert_as_html", // optional: default action on paste
                   defaultMode: 1,
                   buttons:
                     "bold,italic,underline,ul,ol,font,brush,paragraph,left,right,center,justify,undo,redo",
                 }}
                 tabIndex={1}
                 className="text-sm"
-                onChange={(newContent) => {}}
+                onBlur={(newContent) => updateField("description", newContent)}
               />
             </div>
           </div>
