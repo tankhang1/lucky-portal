@@ -155,14 +155,57 @@ export type TUpdateProgramInfoReq = {
   pdf_link: string;
   audio_link: string;
 };
+
 export type TUpdateProgramInfoRes = {
   data: any;
   message: string;
 };
+
 export const updateProgramInfo = async (
   body: TUpdateProgramInfoReq
 ): Promise<TUpdateProgramInfoRes> => {
   const { data } = await api.post(PATH.PROGRAM.UPDATE_INFO, body);
+  return data;
+};
+
+export type TAddProgramInfoReq = {
+  code: string;
+  name: string;
+  time_start_number: number;
+  time_end_number: number;
+  image_thumbnail: string;
+  image_banner: string;
+  description: string;
+  description_short: string;
+  number_start: number;
+  number_end: number;
+  number_loop: number;
+  pdf_link: string;
+  audio_link: string;
+};
+export type TAddProgramInfoRes = {
+  data: any;
+  message: string;
+};
+export const addProgramInfo = async (
+  body: TAddProgramInfoReq
+): Promise<TAddProgramInfoRes> => {
+  const { data } = await api.post(PATH.PROGRAM.ADD_INFO, body);
+  return data;
+};
+
+export type TDeleteProgramInfoReq = {
+  code: string;
+};
+
+export type TDeleteProgramInfoRes = {
+  data: any;
+  message: string;
+};
+export const deleteProgramInfo = async (
+  body: TDeleteProgramInfoReq
+): Promise<TDeleteProgramInfoRes> => {
+  const { data } = await api.post(PATH.PROGRAM.DELETE_INFO, body);
   return data;
 };
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardHeader,
@@ -22,17 +22,15 @@ import {
   Sparkles,
   Image as ImageIcon,
   Search,
-  Copy,
-  Pencil,
   Filter,
   Check,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { IconDotsVertical } from "@tabler/icons-react";
 import Stepper from "@/components/stepper";
 import { cn } from "@/lib/utils";
 import InfoSection from "./components/Info";
 import {
+  useDeleteProgramInfo,
   useSearchGift,
   useSearchProgram,
 } from "@/react-query/queries/program/program";
@@ -54,12 +52,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SelectItem } from "@radix-ui/react-select";
+import ActionIcon from "@/components/action-icon";
+import { toast } from "react-toastify";
+import { queryClient } from "@/main";
+import QUERY_KEY from "@/constants/key";
 
 export default function ProgramPage() {
   const { data: listProgram } = useSearchProgram({
     k: "",
   });
-  // const [programs, setPrograms] = useState<TProgram[]>([]);
+  const { mutate: deleteProgramInfo, isPending: isDeletingProgramInfo } =
+    useDeleteProgramInfo();
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<number>(-1);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -89,6 +92,27 @@ export default function ProgramPage() {
   }, [activeProgram]);
 
   const addProgram = () => {};
+  const onDeleteProgramInfo = (code: string) => {
+    deleteProgramInfo(
+      {
+        code,
+      },
+      {
+        onSuccess: (data) => {
+          toast.success(data.message);
+        },
+        onError: (error) => {
+          //@ts-expect-error no check
+          toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+        },
+        onSettled: () => {
+          queryClient.invalidateQueries({
+            queryKey: [QUERY_KEY.PROGRAM.LIST],
+          });
+        },
+      }
+    );
+  };
   const stats = useMemo(() => {
     const total = listProgram?.length || 0;
     const enabled = listProgram?.filter((p) => p.status === 1).length || 0;
@@ -106,7 +130,11 @@ export default function ProgramPage() {
     }
     return list;
   }, [listProgram, search, statusFilter]);
-
+  useEffect(() => {
+    if (listProgram && listProgram?.length > 0) {
+      setActiveId(listProgram?.[0]?.id);
+    }
+  }, [listProgram]);
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -125,9 +153,7 @@ export default function ProgramPage() {
         <Card className="lg:col-span-4 xl:col-span-3">
           <CardHeader className="pb-3">
             <CardTitle>Danh sách chương trình</CardTitle>
-            <CardDescription>
-              Chọn, tìm kiếm, lọc, sắp xếp, nhân bản hoặc xoá
-            </CardDescription>
+            <CardDescription>Chọn, tìm kiếm, lọc</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center gap-2">
@@ -175,15 +201,6 @@ export default function ProgramPage() {
               </DropdownMenu>
             </div>
 
-            <ScrollArea>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <Badge variant="secondary">Tổng: {stats.total}</Badge>
-                <Badge>Đang bật: {stats.enabled}</Badge>
-                <Badge variant="outline">Đang tắt: {stats.disabled}</Badge>
-              </div>
-              <ScrollBar />
-            </ScrollArea>
-
             <ScrollArea className="h-[520px]">
               <div className="space-y-2">
                 {filteredPrograms?.map((p) => {
@@ -215,11 +232,6 @@ export default function ProgramPage() {
                       <div className="min-w-0">
                         <div className="flex items-center flex-wrap gap-2">
                           <div className="font-medium truncate">{p.name}</div>
-                          {p.code ? (
-                            <span className="text-[11px] text-muted-foreground">
-                              • {p.code}
-                            </span>
-                          ) : null}
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                           <Badge variant={p.status ? "default" : "secondary"}>
@@ -228,44 +240,12 @@ export default function ProgramPage() {
                         </div>
                       </div>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="shrink-0"
-                            aria-label="Mở thao tác"
-                          >
-                            <IconDotsVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" sideOffset={6}>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setActiveId(p.id);
-                              // duplicateProgram(p.id);
-                            }}
-                            className="flex items-center gap-2"
-                          >
-                            <Copy className="h-4 w-4" />
-                            Sao chép
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setActiveId(p.id)}
-                            className="flex items-center gap-2"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Chỉnh sửa
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            // onClick={() => deleteProgram(p.id)}
-                            className="flex items-center gap-2 text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Xoá
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <ActionIcon
+                        onClick={() => onDeleteProgramInfo(p.code)}
+                        label="Xoá"
+                      >
+                        <Trash2 className="h-4 w-4" color="red" />
+                      </ActionIcon>
                     </div>
                   );
                 })}

@@ -9,6 +9,8 @@ const PATH = {
     CUSTOMER_LUCKY_HISTORY: "zalo/campaign/detail/number",
     LUCKY_HISTORY: "/zalo/campaign/lucky/history",
     UPDATE_INFO: "/program/update",
+    ADD_INFO: "/program/add",
+    DELETE_INFO: "/program/deactive",
     ADD_PRIZE: "/program/add-gift",
     UPDATE_PRIZE: "/program/update-gift",
     DELETE_PRIZE: "/program/remove-gift",
