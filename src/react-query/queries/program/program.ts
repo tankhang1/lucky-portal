@@ -10,6 +10,7 @@ import {
   deleteProgramInfo,
   getProgramDetailNumber,
   getProgramLuckyHistory,
+  removeExtraNumber,
   searchCustomer,
   searchGift,
   searchProgram,
@@ -30,6 +31,7 @@ import {
   type TProgramLuckyHistoryRes,
   type TProgramPrizeReq,
   type TProgramPrizeRes,
+  type TRemoveNumberExtraReq,
   type TSearchProgramCustomerReq,
   type TSearchProgramCustomerRes,
   type TSearchProgramGiftReq,
@@ -126,6 +128,15 @@ export const useUpdateNumberExtra = () => {
     TUpdateExtraNumberReq
   >({
     mutationFn: updateExtraNumber,
+  });
+};
+export const useRemoveNumberExtra = () => {
+  return useMutation<
+    TUpdateExtraNumberRes,
+    AxiosError<null>,
+    TRemoveNumberExtraReq
+  >({
+    mutationFn: removeExtraNumber,
   });
 };
 export const useUpdateProgramPrize = () => {

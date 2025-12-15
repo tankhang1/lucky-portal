@@ -77,7 +77,7 @@ const PrizeRow = ({
   const [isSaving, setIsSaving] = useState(false); // Loading state cho nút Save row này
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { mutate: uploadGift, isPending: isUploadingGift } = useUploadGift();
+  const { mutate: uploadGift } = useUploadGift();
 
   // Sync state nếu data cha thay đổi
   useEffect(() => {
@@ -122,6 +122,7 @@ const PrizeRow = ({
     }
     if (!formData.gift_code) {
       alert("Vui lòng nhập mã giải thưởng");
+      return;
     }
     if (file) {
       uploadGift(
@@ -195,7 +196,7 @@ const PrizeRow = ({
           <div className="relative group">
             {formData.gift_image ? (
               <img
-                src={formData.gift_image}
+                src={`${formData.gift_image}?t=${new Date().getTime()}`}
                 alt=""
                 className="h-10 w-10 rounded-md object-cover ring-1 ring-border bg-background"
               />

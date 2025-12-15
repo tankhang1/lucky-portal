@@ -226,6 +226,16 @@ export const updateExtraNumber = async (
   const { data } = await api.post(PATH.PROGRAM.UPDATE_NUMBER_EXTRA, body);
   return data;
 };
+export type TRemoveNumberExtraReq = {
+  campaign_code: string;
+  number_extra: number;
+};
+export const removeExtraNumber = async (
+  body: TRemoveNumberExtraReq
+): Promise<TUpdateExtraNumberRes> => {
+  const { data } = await api.post(PATH.PROGRAM.REMOVE_NUMBER_EXTRA, body);
+  return data;
+};
 export type TProgramPrizeReq = {
   campaign_code: string;
   award_name: string;

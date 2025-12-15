@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  useRemoveNumberExtra,
   useSearchGift,
   useUpdateNumberExtra,
 } from "@/react-query/queries/program/program";
@@ -54,7 +55,7 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
 
   const { mutate: updateNumberExtra, isPending: isUpdateNumberExtra } =
     useUpdateNumberExtra();
-
+  const { mutate: removeNumberExtra } = useRemoveNumberExtra();
   // Local state to manage the list while editing
   const [extraList, setExtraList] = useState<TExtraItem[]>([]);
 
@@ -97,7 +98,35 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
 
   // 3. Handle removing a row
   const handleRemove = (index: number) => {
-    setExtraList((prev) => prev.filter((_, i) => i !== index));
+    if (!extraList?.[index]) {
+      return;
+    }
+    const extra = extraList[index];
+    const item = `${extra.number}@@${extra.repeat}@@${extra.giftCode}`;
+    if (activeProgram?.number_extra?.includes(item)) {
+      removeNumberExtra(
+        {
+          campaign_code: activeProgram?.code,
+          number_extra: +extraList?.[index]?.number,
+        },
+        {
+          onSuccess: (data) => {
+            toast.success(data.message);
+          },
+          onError: (error) => {
+            //@ts-expect-error no check
+            toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+          },
+          onSettled: () => {
+            queryClient.invalidateQueries({
+              queryKey: [QUERY_KEY.PROGRAM.LIST],
+            });
+          },
+        }
+      );
+    } else {
+      setExtraList((prev) => prev.filter((_, i) => i !== index));
+    }
   };
 
   // 4. Handle changing values in a row

@@ -12,6 +12,7 @@ const PATH = {
     ADD_INFO: "/program/add",
     DELETE_INFO: "/program/deactive",
     UPDATE_NUMBER_EXTRA: "/program/add-number-extra",
+    REMOVE_NUMBER_EXTRA: "/program/remove-number-extra",
     ADD_PRIZE: "/program/add-gift",
     UPDATE_PRIZE: "/program/update-gift",
     DELETE_PRIZE: "/program/remove-gift",
