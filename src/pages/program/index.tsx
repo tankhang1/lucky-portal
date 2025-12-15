@@ -27,6 +27,7 @@ import {
   RotateCcwIcon,
   ShieldCheck,
   ShieldBan,
+  X,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import Stepper from "@/components/stepper";
@@ -300,6 +301,14 @@ export default function ProgramPage() {
                           label={"Tạm dừng"}
                         >
                           <ShieldBan className="h-4 w-4" color="red" />
+                        </ActionIcon>
+                      )}
+                      {p.id === -1 && (
+                        <ActionIcon
+                          onClick={() => setListProgram(listProgram.slice(1))}
+                          label={"Xoá"}
+                        >
+                          <X className="h-4 w-4" color="red" />
                         </ActionIcon>
                       )}
                     </div>
