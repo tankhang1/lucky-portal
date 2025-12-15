@@ -758,7 +758,6 @@ function DataTable(props: {
                       >
                         <Copy className="mr-2 h-4 w-4" /> Sao chép SĐT
                       </DropdownMenuItem>
-                      {/* Placeholder for detail view if you have a modal */}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

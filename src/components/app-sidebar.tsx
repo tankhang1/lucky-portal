@@ -20,11 +20,11 @@ const data = {
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
-    {
-      title: "Dashboard",
-      url: "/main/dashboard",
-      icon: IconDashboard,
-    },
+    // {
+    //   title: "Dashboard",
+    //   url: "/main/dashboard",
+    //   icon: IconDashboard,
+    // },
     {
       title: "Chương trình",
       url: "/main/program",
@@ -62,7 +62,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser
+          user={{
+            avatar: "",
+            email: "",
+            name: "suadmin",
+          }}
+        />
       </SidebarFooter>
     </Sidebar>
   );
