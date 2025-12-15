@@ -14,7 +14,6 @@ import {
   Trash2,
   Upload,
   FileText,
-  Download,
   Music,
   AudioLines,
   SaveIcon,
@@ -35,6 +34,12 @@ import { queryClient } from "@/main";
 import QUERY_KEY from "@/constants/key";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  useUploadAudio,
+  useUploadImage,
+  useUploadPdf,
+  useUploadThumbnail,
+} from "@/react-query/queries/media/media";
 
 export default function InfoSection({
   activeProgram,
@@ -45,6 +50,11 @@ export default function InfoSection({
     useUpdateProgramInfo();
   const { mutate: addProgram, isPending: isAddingProgram } =
     useAddProgramInfo();
+  const { mutate: uploadImage, isPending: isUploadingImage } = useUploadImage();
+  const { mutate: uploadThumbnail, isPending: isUploadingThumbnail } =
+    useUploadThumbnail();
+  const { mutate: uploadAudio, isPending: isUploadingAudio } = useUploadAudio();
+  const { mutate: uploadPdf, isPending: isUploadingPdf } = useUploadPdf();
   const [formData, setFormData] = useState<TProgram>(activeProgram);
 
   useEffect(() => {
@@ -80,8 +90,25 @@ export default function InfoSection({
       alert("Vui lòng chọn PDF ≤ 5MB");
       return;
     }
+    if (!formData?.code) {
+      alert("Vui lòng nhập mã chương trình");
+      return;
+    }
     const dataUrl = await fileToDataUrl(f);
-    updateField("pdf_link", dataUrl);
+
+    uploadPdf(
+      {
+        c: formData?.code,
+        file: f,
+      },
+      {
+        onSuccess: (message) => {
+          toast.success(message);
+          console.log("pdf link", message);
+          updateField("pdf_link", dataUrl);
+        },
+      }
+    );
   };
 
   const handleVoice = async (f?: File | null) => {
@@ -94,8 +121,61 @@ export default function InfoSection({
       alert("Vui lòng chọn file âm thanh ≤ 10MB");
       return;
     }
+    if (!formData?.code) {
+      alert("Vui lòng nhập mã chương trình");
+      return;
+    }
     const dataUrl = await fileToDataUrl(f);
-    updateField("audio_link", dataUrl);
+    uploadAudio(
+      {
+        c: formData?.code,
+        file: f,
+      },
+      {
+        onSuccess: (message) => {
+          console.log("audio_link", message);
+          updateField("audio_link", dataUrl);
+        },
+      }
+    );
+  };
+  const handleUploadImage = async (f: File) => {
+    if (!formData?.code) {
+      alert("Vui lòng nhập mã chương trình");
+      return;
+    }
+    const dataUrl = await fileToDataUrl(f);
+    uploadImage(
+      {
+        c: formData?.code,
+        file: f,
+      },
+      {
+        onSuccess: (message) => {
+          console.log("image_banner", message);
+          updateField("image_banner", dataUrl);
+        },
+      }
+    );
+  };
+  const handleUploadThumbnail = async (f: File) => {
+    if (!formData?.code) {
+      alert("Vui lòng nhập mã chương trình");
+      return;
+    }
+    const dataUrl = await fileToDataUrl(f);
+    uploadThumbnail(
+      {
+        c: formData?.code,
+        file: f,
+      },
+      {
+        onSuccess: (message) => {
+          console.log("image_thumbnail", message);
+          updateField("image_thumbnail", dataUrl);
+        },
+      }
+    );
   };
 
   const handleUpdate = () => {
@@ -241,18 +321,22 @@ export default function InfoSection({
           <Tabs defaultValue="banner" className="w-full">
             <div className="grid gap-4 md:grid-cols-2">
               <ImageField
-                label="Banner"
+                label={`Banner ${
+                  isUploadingImage ? "(Đang upload ảnh...)" : ""
+                }`}
                 hint="Tỉ lệ 3:1 • gợi ý 1500×500"
                 value={formData?.image_banner || ""}
-                onChange={(val) => updateField("image_banner", val)}
+                onChange={handleUploadImage}
                 onClear={() => updateField("image_banner", null)}
               />
 
               <ImageField
-                label="Thumbnail"
+                label={`Thumbnail ${
+                  isUploadingThumbnail ? "(Đang upload thumbnail...)" : ""
+                }`}
                 hint="Tỉ lệ 1:1 • gợi ý 600×600"
                 value={formData?.image_thumbnail || ""}
-                onChange={(val) => updateField("image_thumbnail", val)}
+                onChange={handleUploadThumbnail}
                 onClear={() => updateField("image_thumbnail", null)}
               />
             </div>
@@ -292,7 +376,10 @@ export default function InfoSection({
 
         {/* PDF uploader */}
         <div className="space-y-2">
-          <div className="text-sm font-medium">Tệp PDF (thể lệ/hướng dẫn)</div>
+          <div className="text-sm font-medium">
+            Tệp PDF (thể lệ/hướng dẫn){" "}
+            {isUploadingPdf && "(Đang upload pdf...)"}
+          </div>
           <div
             className={`relative rounded-lg border border-dashed p-4 transition ${
               pdfDragOver ? "bg-muted/30" : "bg-muted/10"
@@ -362,7 +449,8 @@ export default function InfoSection({
         {/* Audio Uploader */}
         <div className="space-y-2">
           <div className="text-sm font-medium">
-            Tệp âm thanh (Voice giới thiệu)
+            Tệp âm thanh (Voice giới thiệu){" "}
+            {isUploadingAudio && "(Đang upload audio...)"}
           </div>
           <div
             className={`relative rounded-lg border border-dashed p-4 transition ${
@@ -493,92 +581,92 @@ export default function InfoSection({
           </div>
 
           {/* Lucky Number Settings */}
-          {activeProgram?.id === -1 && (
-            <Card className="border-muted/60">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Dãy số may mắn</CardTitle>
-                <CardDescription>
-                  Phạm vi A→B và số lần lặp cho mỗi số
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="space-y-1">
-                    <div className="text-xs text-muted-foreground">Từ (A)</div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        inputMode="numeric"
-                        className="pr-10"
-                        // FIX: Use formData and add onChange
-                        value={formData.number_start || 0}
-                        onChange={(e) =>
-                          updateField("number_start", e.target.value)
-                        }
-                      />
-                      <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
-                        A
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="space-y-1">
-                    <div className="text-xs text-muted-foreground">Đến (B)</div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        inputMode="numeric"
-                        className="pr-10"
-                        // FIX: Use formData and add onChange
-                        value={formData.number_end || 0}
-                        onChange={(e) =>
-                          updateField("number_end", e.target.value)
-                        }
-                      />
-                      <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
-                        B
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-xs text-muted-foreground">
-                      Số lần lặp
-                    </div>
+          <Card className="border-muted/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Dãy số may mắn</CardTitle>
+              <CardDescription>
+                Phạm vi A→B và số lần lặp cho mỗi số
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Từ (A)</div>
+                  <div className="relative">
                     <Input
                       type="number"
                       inputMode="numeric"
+                      className="pr-10"
                       // FIX: Use formData and add onChange
-                      value={formData.number_loop || 0}
+                      value={formData.number_start || 0}
                       onChange={(e) =>
-                        updateField("number_loop", e.target.value)
+                        updateField("number_start", e.target.value)
                       }
+                      disabled={activeProgram?.id !== -1}
                     />
+                    <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
+                      A
+                    </span>
                   </div>
                 </div>
 
-                {/* Calculation Badge */}
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <Badge variant="secondary">
-                    Tổng lượt dãy:{" "}
-                    {/* FIX: Calculate based on formData to show real-time updates */}
-                    {Math.max(
-                      0,
-                      (Number(formData.number_end) || 0) -
-                        (Number(formData.number_start) || 0) +
-                        1
-                    ) * Math.max(1, Number(formData.number_loop) || 1)}
-                  </Badge>
-                  {(Number(formData.number_start) || 0) >
-                    (Number(formData.number_end) || 0) && (
-                    <span className="rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700 ring-1 ring-amber-200">
-                      Lưu ý: A nên ≤ B
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Đến (B)</div>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      className="pr-10"
+                      // FIX: Use formData and add onChange
+                      value={formData.number_end || 0}
+                      onChange={(e) =>
+                        updateField("number_end", e.target.value)
+                      }
+                      disabled={activeProgram?.id !== -1}
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-2 grid place-items-center text-xs text-muted-foreground">
+                      B
                     </span>
-                  )}
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">
+                    Số lần lặp
+                  </div>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    // FIX: Use formData and add onChange
+                    value={formData.number_loop || 0}
+                    onChange={(e) => updateField("number_loop", e.target.value)}
+                    disabled={activeProgram?.id !== -1}
+                  />
+                </div>
+              </div>
+
+              {/* Calculation Badge */}
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Badge variant="secondary">
+                  Tổng lượt dãy:{" "}
+                  {/* FIX: Calculate based on formData to show real-time updates */}
+                  {Math.max(
+                    0,
+                    (Number(formData.number_end) || 0) -
+                      (Number(formData.number_start) || 0) +
+                      1
+                  ) * Math.max(1, Number(formData.number_loop) || 1)}
+                </Badge>
+                {(Number(formData.number_start) || 0) >
+                  (Number(formData.number_end) || 0) && (
+                  <span className="rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700 ring-1 ring-amber-200">
+                    Lưu ý: A nên ≤ B
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* --- END FIXED SECTION --- */}

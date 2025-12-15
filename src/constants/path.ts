@@ -17,5 +17,11 @@ const PATH = {
     ADD_CUSTOMER: "/program/add-customer",
     DELETE_CUSTOMER: "/program/remove-consumer",
   },
+  MEDIA: {
+    UPLOAD_IMAGE: "/upload-files/image",
+    UPLOAD_THUMBNAIL: "/upload-files/thumbnail",
+    UPLOAD_PDF: "/upload-files/pdf",
+    UPLOAD_AUDIO: "/upload-files/audio",
+  },
 };
 export default PATH;
