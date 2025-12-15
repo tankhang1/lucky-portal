@@ -536,14 +536,14 @@ const HistoryPage: React.FC = () => {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button
+              {/* <Button
                 variant="outline"
                 className="gap-2"
                 onClick={() => exportToCsv(filtered)}
               >
                 <Download className="h-4 w-4" /> Xuất CSV
-              </Button>
-              <Button
+              </Button> */}
+              {/* <Button
                 variant={hidePhone ? "default" : "outline"}
                 className="gap-2"
                 onClick={() => setHidePhone((v) => !v)}
@@ -555,8 +555,8 @@ const HistoryPage: React.FC = () => {
                   <EyeOff className="h-4 w-4" />
                 )}
                 {hidePhone ? "Hiện SĐT" : "Ẩn SĐT"}
-              </Button>
-
+              </Button> */}
+              {/* 
               <Dialog open={openAdd} onOpenChange={setOpenAdd}>
                 <DialogTrigger asChild>
                   <Button className="gap-2">
@@ -673,7 +673,7 @@ const HistoryPage: React.FC = () => {
                     <Button onClick={addRow}>Lưu</Button>
                   </DialogFooter>
                 </DialogContent>
-              </Dialog>
+              </Dialog> */}
             </div>
           </div>
 

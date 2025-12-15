@@ -208,7 +208,20 @@ export const deleteProgramInfo = async (
   const { data } = await api.post(PATH.PROGRAM.DELETE_INFO, body);
   return data;
 };
-
+export type TUpdateExtraNumberReq = {
+  code: string;
+  number_extra: string;
+};
+export type TUpdateExtraNumberRes = {
+  data: any;
+  message: string;
+};
+export const updateExtraNumber = async (
+  body: TUpdateExtraNumberReq
+): Promise<TUpdateExtraNumberRes> => {
+  const { data } = await api.post(PATH.PROGRAM.UPDATE_NUMBER_EXTRA, body);
+  return data;
+};
 export type TProgramPrizeReq = {
   campaign_code: string;
   award_name: string;

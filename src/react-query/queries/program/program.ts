@@ -13,6 +13,7 @@ import {
   searchCustomer,
   searchGift,
   searchProgram,
+  updateExtraNumber,
   updateProgramInfo,
   updateProgramPrize,
   type TAddCustomerReq,
@@ -35,6 +36,8 @@ import {
   type TSearchProgramGiftRes,
   type TSearchProgramReq,
   type TSearchProgramRes,
+  type TUpdateExtraNumberReq,
+  type TUpdateExtraNumberRes,
   type TUpdateProgramInfoReq,
   type TUpdateProgramInfoRes,
 } from "@/react-query/services/program/program.service";
@@ -114,6 +117,15 @@ export const useDeleteProgramInfo = () => {
     TDeleteProgramInfoReq
   >({
     mutationFn: deleteProgramInfo,
+  });
+};
+export const useUpdateNumberExtra = () => {
+  return useMutation<
+    TUpdateExtraNumberRes,
+    AxiosError<null>,
+    TUpdateExtraNumberReq
+  >({
+    mutationFn: updateExtraNumber,
   });
 };
 export const useUpdateProgramPrize = () => {

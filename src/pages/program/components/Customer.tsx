@@ -145,16 +145,7 @@ const CustomerSection = ({ code }: TCustomerSection) => {
                 setForm((prev) => ({ ...prev, consumer_code: e.target.value }))
               }
             />
-            <Input
-              className="sm:col-span-2"
-              placeholder="Số lượt quay"
-              type="number"
-              inputMode="numeric"
-              // value={form.consumer_phone}
-              // onChange={(e) =>
-              //   setForm((prev) => ({ ...prev, consumer_phone: e.target.value }))
-              // }
-            />
+
             <Button
               className="sm:col-span-1"
               onClick={onAddCustomer}

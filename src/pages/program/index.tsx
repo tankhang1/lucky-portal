@@ -15,17 +15,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plus,
-  Trash2,
   Sparkles,
   Image as ImageIcon,
   Search,
   Filter,
-  Check,
-  RotateCcwIcon,
-  ShieldCheck,
   ShieldBan,
   X,
 } from "lucide-react";
@@ -35,32 +31,17 @@ import { cn } from "@/lib/utils";
 import InfoSection from "./components/Info";
 import {
   useDeleteProgramInfo,
-  useSearchGift,
   useSearchProgram,
 } from "@/react-query/queries/program/program";
 import PrizeSection from "./components/Prize";
 import CustomerSection from "./components/Customer";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { SelectItem } from "@radix-ui/react-select";
+
 import ActionIcon from "@/components/action-icon";
 import { toast } from "react-toastify";
 import { queryClient } from "@/main";
 import QUERY_KEY from "@/constants/key";
 import type { TSearchProgramRes } from "@/react-query/services/program/program.service";
+import LuckyExtra from "./components/LuckyExtra";
 
 export default function ProgramPage() {
   const { data: programs } = useSearchProgram({
@@ -80,21 +61,6 @@ export default function ProgramPage() {
     () => listProgram?.find((p) => p.id === activeId)!,
     [listProgram, activeId]
   );
-  const { data: gifts } = useSearchGift({
-    campaignCode: activeProgram?.code,
-  });
-  const rangeNumberOnline = useMemo(() => {
-    if (!activeProgram?.number_extra) return [];
-    const list = activeProgram?.number_extra?.split(",");
-    return list?.map((item) => {
-      const [number, repeat, giftId] = item.split("@@");
-      return {
-        number,
-        repeat,
-        giftId,
-      };
-    });
-  }, [activeProgram]);
 
   const addProgram = () => {
     const now = new Date();
@@ -330,7 +296,7 @@ export default function ProgramPage() {
             steps={[
               { id: "info", label: "Thông tin" },
               { id: "prizes", label: "Giải thưởng" },
-              { id: "scenario", label: "Kịch bản" },
+              { id: "lucky_number", label: "Số may mắn" },
               { id: "client", label: "Khách hàng" },
             ]}
             orientation="horizontal"
@@ -349,120 +315,7 @@ export default function ProgramPage() {
             )}
             {step === 1 && <PrizeSection code={activeProgram.code} />}
 
-            {step === 2 && (
-              <div className="space-y-6 px-4">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">Thiết lập giải extra</div>
-                </div>
-
-                <Card className="border-muted/60">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Số lẻ may mắn</CardTitle>
-                    <CardDescription>
-                      Thêm số ngoài dãy A→B, thiết lập lặp & giải thưởng
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
-                        Danh sách số lẻ
-                      </div>
-                      <Button size="sm" className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Thêm số
-                      </Button>
-                    </div>
-
-                    <ScrollArea className="h-[300px] rounded-lg border">
-                      <Table className="text-sm">
-                        <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                          <TableRow className="[&>th]:h-9 [&>th]:px-3">
-                            <TableHead className="w-[120px] text-left">
-                              Số
-                            </TableHead>
-                            <TableHead className="w-[140px] text-left">
-                              Số lần lặp
-                            </TableHead>
-                            <TableHead>Giải thưởng</TableHead>
-                            <TableHead className="w-[92px] text-left">
-                              Hành động
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
-                          {(rangeNumberOnline ?? []).map((row, idx: number) => {
-                            return (
-                              <TableRow
-                                key={idx}
-                                className="[&>td]:px-3 [&>td]:py-2"
-                              >
-                                <TableCell className="text-right">
-                                  <Input
-                                    type="number"
-                                    inputMode="numeric"
-                                    value={row.number}
-                                  />
-                                </TableCell>
-
-                                <TableCell className="text-right">
-                                  <Input
-                                    type="number"
-                                    inputMode="numeric"
-                                    value={row.repeat ?? 1}
-                                  />
-                                </TableCell>
-
-                                <TableCell>
-                                  <Select value={row.giftId ?? ""}>
-                                    <SelectTrigger className="w-[260px]">
-                                      <SelectValue placeholder="Chọn giải thưởng" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectGroup>
-                                        {gifts?.map((p) => (
-                                          <SelectItem
-                                            key={p.id}
-                                            value={p.id.toString()}
-                                          >
-                                            {p.gift_name}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectGroup>
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
-
-                                <TableCell className="text-right">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label="Xoá"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-
-                          {rangeNumberOnline.length === 0 && (
-                            <TableRow>
-                              <TableCell
-                                colSpan={4}
-                                className="h-[72px] text-center text-sm text-muted-foreground"
-                              >
-                                Chưa có số lẻ may mắn
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                      <ScrollBar orientation="vertical" />
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            {step === 2 && <LuckyExtra activeProgram={activeProgram} />}
             {step === 3 && <CustomerSection code={activeProgram?.code} />}
           </Stepper>
         </Card>
