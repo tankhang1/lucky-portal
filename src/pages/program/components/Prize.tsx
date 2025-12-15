@@ -38,6 +38,7 @@ import {
 import { toast } from "react-toastify";
 import { queryClient } from "@/main";
 import QUERY_KEY from "@/constants/key";
+import { useUploadGift } from "@/react-query/queries/media/media";
 
 // Mở rộng type để quản lý trạng thái local
 type TPrizeState = TProgramPrizeReq & {
@@ -76,6 +77,7 @@ const PrizeRow = ({
   const [isSaving, setIsSaving] = useState(false); // Loading state cho nút Save row này
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { mutate: uploadGift, isPending: isUploadingGift } = useUploadGift();
 
   // Sync state nếu data cha thay đổi
   useEffect(() => {
@@ -112,13 +114,40 @@ const PrizeRow = ({
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Vui lòng chọn ảnh ≤ 2MB");
+      return;
+    }
+    if (!formData.gift_code) {
+      alert("Vui lòng nhập mã giải thưởng");
+    }
     if (file) {
-      const base64 = await fileToDataUrl(file);
-      setFormData((prev) => ({
-        ...prev,
-        gift_image: base64,
-        gift_image_thumb: base64,
-      }));
+      uploadGift(
+        {
+          c: formData.campaign_code,
+          g: formData.gift_code,
+          file: file,
+        },
+        {
+          onSuccess: (message) => {
+            console.log("image_thumbnail", message);
+            setFormData((prev) => ({
+              ...prev,
+              gift_image: `${import.meta.env.VITE_API_URL}/image/${
+                formData.gift_code
+              }_${formData.campaign_code}.jpg`,
+              gift_image_thumb: `${import.meta.env.VITE_API_URL}/image/${
+                formData.gift_code
+              }_${formData.campaign_code}.jpg`,
+            }));
+          },
+          onError: () => {
+            toast.error("Upload ảnh thất bại");
+          },
+        }
+      );
     }
   };
 
@@ -328,7 +357,11 @@ const PrizeRow = ({
 
 // --- Main Container ---
 const PrizeSection = ({ code }: { code: string }) => {
-  const { data: gifts, isLoading } = useSearchGift({ campaignCode: code });
+  const { data: gifts, isLoading } = useSearchGift({
+    campaignCode: code,
+    type: "0",
+  });
+
   const [items, setItems] = useState<TPrizeState[]>([]);
 
   useEffect(() => {

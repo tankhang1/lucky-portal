@@ -45,3 +45,14 @@ export const uploadAudio = async (
   const { data } = await api.post(PATH.MEDIA.UPLOAD_AUDIO, formData);
   return data;
 };
+
+export const uploadGift = async (
+  body: TUploadFileReq & { g: string }
+): Promise<TUploadFileRes> => {
+  const formData = new FormData();
+  formData.append("c", body.c);
+  formData.append("g", body.g);
+  formData.append("file", body.file);
+  const { data } = await api.post(PATH.MEDIA.UPLOAD_GIFT, formData);
+  return data;
+};

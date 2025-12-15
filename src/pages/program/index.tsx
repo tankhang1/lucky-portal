@@ -64,6 +64,7 @@ export default function ProgramPage() {
 
   const addProgram = () => {
     const now = new Date();
+    setStep(0);
     setListProgram((prev) => [
       {
         id: -1,
@@ -140,7 +141,7 @@ export default function ProgramPage() {
     return list;
   }, [listProgram, search, statusFilter]);
   useEffect(() => {
-    if (listProgram && listProgram?.length > 0) {
+    if (listProgram && listProgram?.length > 0 && !activeId) {
       setActiveId(listProgram?.[0]?.id);
     }
   }, [listProgram]);

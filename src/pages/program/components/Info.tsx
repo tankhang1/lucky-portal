@@ -71,15 +71,6 @@ export default function InfoSection({
   const [pdfDragOver, setPdfDragOver] = useState(false);
   const [voiceDragOver, setVoiceDragOver] = useState(false);
 
-  const fileToDataUrl = async (file: File) => {
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handlePdf = async (f?: File | null) => {
     if (!f) return;
     if (f.type !== "application/pdf") {
@@ -94,7 +85,6 @@ export default function InfoSection({
       alert("Vui lòng nhập mã chương trình");
       return;
     }
-    const dataUrl = await fileToDataUrl(f);
 
     uploadPdf(
       {
@@ -105,7 +95,10 @@ export default function InfoSection({
         onSuccess: (message) => {
           toast.success(message);
           console.log("pdf link", message);
-          updateField("pdf_link", dataUrl);
+          updateField(
+            "pdf_link",
+            `${import.meta.env.VITE_API_URL}/pdf/${formData.code}.pdf`
+          );
         },
       }
     );
@@ -114,7 +107,7 @@ export default function InfoSection({
   const handleVoice = async (f?: File | null) => {
     if (!f) return;
     if (!f.type.startsWith("audio/")) {
-      alert("Chỉ chấp nhận file âm thanh (MP3, WAV, M4A...)");
+      alert("Chỉ chấp nhận file âm thanh (MP3)");
       return;
     }
     if (f.size > 10 * 1024 * 1024) {
@@ -125,7 +118,6 @@ export default function InfoSection({
       alert("Vui lòng nhập mã chương trình");
       return;
     }
-    const dataUrl = await fileToDataUrl(f);
     uploadAudio(
       {
         c: formData?.code,
@@ -134,7 +126,10 @@ export default function InfoSection({
       {
         onSuccess: (message) => {
           console.log("audio_link", message);
-          updateField("audio_link", dataUrl);
+          updateField(
+            "audio_link",
+            `${import.meta.env.VITE_API_URL}/audio/${formData.code}.mp3`
+          );
         },
       }
     );
@@ -144,7 +139,6 @@ export default function InfoSection({
       alert("Vui lòng nhập mã chương trình");
       return;
     }
-    const dataUrl = await fileToDataUrl(f);
     uploadImage(
       {
         c: formData?.code,
@@ -153,7 +147,10 @@ export default function InfoSection({
       {
         onSuccess: (message) => {
           console.log("image_banner", message);
-          updateField("image_banner", dataUrl);
+          updateField(
+            "image_banner",
+            `${import.meta.env.VITE_API_URL}/image/${formData.code}.jpg`
+          );
         },
       }
     );
@@ -163,7 +160,6 @@ export default function InfoSection({
       alert("Vui lòng nhập mã chương trình");
       return;
     }
-    const dataUrl = await fileToDataUrl(f);
     uploadThumbnail(
       {
         c: formData?.code,
@@ -172,7 +168,10 @@ export default function InfoSection({
       {
         onSuccess: (message) => {
           console.log("image_thumbnail", message);
-          updateField("image_thumbnail", dataUrl);
+          updateField(
+            "image_thumbnail",
+            `${import.meta.env.VITE_API_URL}/image/${formData.code}_thumb.jpg`
+          );
         },
       }
     );
@@ -294,6 +293,7 @@ export default function InfoSection({
                     onClick={() =>
                       updateField("status", formData.status === 1 ? 0 : 1)
                     }
+                    disabled
                     className={`shrink-0 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] cursor-pointer transition bg-white! ${
                       formData.status === 1
                         ? "border-emerald-200 text-emerald-700 bg-emerald-50"

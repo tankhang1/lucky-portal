@@ -1,5 +1,6 @@
 import {
   uploadAudio,
+  uploadGift,
   uploadImage,
   uploadPdf,
   uploadThumbnail,
@@ -30,5 +31,15 @@ export const useUploadPdf = () => {
 export const useUploadAudio = () => {
   return useMutation<TUploadFileRes, AxiosError<null>, TUploadFileReq>({
     mutationFn: uploadAudio,
+  });
+};
+
+export const useUploadGift = () => {
+  return useMutation<
+    TUploadFileRes,
+    AxiosError<null>,
+    TUploadFileReq & { g: string }
+  >({
+    mutationFn: uploadGift,
   });
 };

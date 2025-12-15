@@ -62,6 +62,8 @@ export type TProgramGift = {
 };
 export type TSearchProgramGiftReq = {
   campaignCode: string;
+  keyword?: string;
+  type?: string;
 };
 export type TSearchProgramGiftRes = TProgramGift[];
 export const searchGift = async (

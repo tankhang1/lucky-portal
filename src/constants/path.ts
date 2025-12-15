@@ -20,6 +20,7 @@ const PATH = {
   },
   MEDIA: {
     UPLOAD_IMAGE: "/upload-files/image",
+    UPLOAD_GIFT: "/upload-files/gift",
     UPLOAD_THUMBNAIL: "/upload-files/thumbnail",
     UPLOAD_PDF: "/upload-files/pdf",
     UPLOAD_AUDIO: "/upload-files/audio",

@@ -43,12 +43,13 @@ type TLuckyExtra = {
 type TExtraItem = {
   number: string | number;
   repeat: string | number;
-  giftId: string;
+  giftCode: string;
 };
 
 const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
   const { data: gifts } = useSearchGift({
     campaignCode: activeProgram?.code,
+    type: "1",
   });
 
   const { mutate: updateNumberExtra, isPending: isUpdateNumberExtra } =
@@ -74,7 +75,7 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
           return {
             number: parts[0],
             repeat: parts[1],
-            giftId: parts[2],
+            giftCode: parts[2],
           };
         })
         .filter((item) => item !== null); // Remove invalid rows
@@ -90,7 +91,7 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
   const handleAdd = () => {
     setExtraList((prev) => [
       ...prev,
-      { number: "", repeat: 1, giftId: "" }, // Default values
+      { number: "", repeat: 1, giftCode: "" }, // Default values
     ]);
   };
 
@@ -115,10 +116,10 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
   // 5. Serialize data and call API
   const handleSave = () => {
     // Validate: Filter out rows with empty numbers or giftIds
-    const validList = extraList.filter((item) => item.number && item.giftId);
+    const validList = extraList.filter((item) => item.number && item.giftCode);
 
     const number_extra = validList
-      .map((item) => `${item.number}@@${item.repeat}@@${item.giftId}`)
+      .map((item) => `${item.number}@@${item.repeat}@@${item.giftCode}`)
       .join(",");
 
     const payload = {
@@ -220,9 +221,9 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
 
                       <TableCell>
                         <Select
-                          value={row.giftId}
+                          value={row.giftCode}
                           onValueChange={(val) =>
-                            handleChange(idx, "giftId", val)
+                            handleChange(idx, "giftCode", val)
                           }
                         >
                           <SelectTrigger className="w-full">
@@ -231,7 +232,10 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
                           <SelectContent>
                             <SelectGroup>
                               {gifts?.map((p) => (
-                                <SelectItem key={p.id} value={p.id.toString()}>
+                                <SelectItem
+                                  key={p.gift_code}
+                                  value={p.gift_code.toString()}
+                                >
                                   {p.gift_name}
                                 </SelectItem>
                               ))}
