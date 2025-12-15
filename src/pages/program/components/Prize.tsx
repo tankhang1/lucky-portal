@@ -43,6 +43,7 @@ import QUERY_KEY from "@/constants/key";
 type TPrizeState = TProgramPrizeReq & {
   isNew?: boolean;
   id?: string | number;
+  status?: number;
 };
 
 // --- Helper: File to Base64 ---
@@ -88,6 +89,7 @@ const PrizeRow = ({
   const handleSaveClick = async () => {
     setIsSaving(true);
     try {
+      console.log(formData);
       await onSave(formData);
       setIsEditing(false); // Tắt chế độ edit sau khi lưu thành công
     } catch (error) {
@@ -223,13 +225,13 @@ const PrizeRow = ({
       </TableCell>
 
       {/* Gift Code */}
-      <TableCell>
+      <TableCell className="text-left">
         <Input
           disabled={!isEditing || (!item.isNew && !!item.gift_code)} // Code thường không cho sửa khi đã tạo
           value={formData.gift_code}
           onChange={(e) => handleChange("gift_code", e.target.value)}
           placeholder="Mã quà..."
-          className={`h-8 font-mono text-xs ${
+          className={`h-8 font-mono text-xs${
             !isEditing
               ? "border-transparent bg-transparent shadow-none px-0"
               : ""
@@ -238,7 +240,7 @@ const PrizeRow = ({
       </TableCell>
 
       {/* Limits */}
-      <TableCell className="text-right">
+      <TableCell className="text-left">
         <Input
           disabled={!isEditing}
           type="number"
@@ -252,9 +254,34 @@ const PrizeRow = ({
           }`}
         />
       </TableCell>
+      <TableCell className="text-center">
+        <Input
+          disabled={!isEditing}
+          type="checkbox"
+          value={formData.type_extra}
+          onChange={(e) => handleChange("type_extra", Number(e.target.checked))}
+          className={`text-right h-8 ${
+            !isEditing
+              ? "border-transparent bg-transparent shadow-none px-0"
+              : ""
+          }`}
+        />
+      </TableCell>
+      <TableCell className="text-center">
+        {!isEditing && (
+          <Input
+            disabled={true}
+            type="text"
+            value={formData.status === 1 ? "Hoạt động" : "Tạm ngưng"}
+            className={`text-right h-8 border-transparent bg-transparent shadow-none px-0 ${
+              formData.status === 1 ? "text-green-500" : "text-red-500"
+            } `}
+          />
+        )}
+      </TableCell>
 
       {/* Actions Column */}
-      <TableCell className="text-right">
+      <TableCell className="text-center">
         <div className="flex items-center justify-end gap-1">
           {isEditing ? (
             <>
@@ -286,9 +313,11 @@ const PrizeRow = ({
                 <Pencil className="h-4 w-4" />
               </ActionIcon>
               {/* Nút Xóa */}
-              <ActionIcon label="Xoá" onClick={() => onDelete(item)}>
-                <Trash2 className="h-4 w-4" />
-              </ActionIcon>
+              {formData.status === 1 && (
+                <ActionIcon label="Xoá" onClick={() => onDelete(item)}>
+                  <Trash2 className="h-4 w-4" />
+                </ActionIcon>
+              )}
             </>
           )}
         </div>
@@ -418,9 +447,19 @@ const PrizeSection = ({ code }: { code: string }) => {
               <TableHead className="min-w-[180px]">Tên quà</TableHead>
               <TableHead className="min-w-[180px]">Tên giải</TableHead>
               <TableHead className="min-w-[100px]">Hình ảnh</TableHead>
-              <TableHead className="w-[120px]">Mã quà</TableHead>
-              <TableHead className="w-[80px] text-right">Số lượng</TableHead>
-              <TableHead className="w-[100px] text-right">Hành động</TableHead>
+              <TableHead className="min-w-[160px]">Mã quà</TableHead>
+              <TableHead className="min-w-[140px] text-right">
+                Số lượng
+              </TableHead>
+              <TableHead className="min-w-[80px] text-right">
+                Quà Extra
+              </TableHead>
+              <TableHead className="min-w-[150px] text-right">
+                Trạng thái
+              </TableHead>
+              <TableHead className="min-w-[100px] text-right">
+                Hành động
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
