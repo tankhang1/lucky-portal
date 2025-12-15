@@ -29,17 +29,14 @@ import { Separator } from "@/components/ui/separator";
 import {
   Search,
   Filter,
-  Download,
   RotateCcw,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
-  Eye,
-  EyeOff,
   MoreHorizontal,
   Copy,
   Info,
-  Plus,
+  Trash2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -50,17 +47,6 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
-  Dialog,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogContent,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -68,131 +54,30 @@ import {
 } from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { useGetProgramLuckyHistory } from "@/react-query/queries/program/program";
+import {
+  useGetProgramLuckyHistory,
+  useSearchProgram,
+  // Assuming you have a delete/update mutation hook. If not, this is a placeholder.
+} from "@/react-query/queries/program/program";
+import { toast } from "react-toastify"; // Assuming you use toastify
+import { queryClient } from "@/main"; // Adjust path to your queryClient
+import QUERY_KEY from "@/constants/key"; // Adjust path to your query keys
 
 // ---------------------- Types ----------------------
 type HistoryRow = {
-  id: string;
+  id: string; // The specific Lucky Number ID
+  id_program: number; // Needed for API calls usually
   name?: string;
   phone: string;
-  prize: string; // tên giải trúng (nếu chỉ tham gia mà chưa trúng, để "")
+  prize: string;
   program: string;
-  programCode?: string; // Mã CT
-  wonAt?: string; // ISO – có nghĩa là đã trúng
-  drawAt: string; // ISO – thời gian bốc số (tham gia)
+  programCode?: string;
+  wonAt?: string;
+  drawAt: string;
   address?: string;
-  idCard?: string; // CCCD
+  idCard?: string;
   note?: string;
 };
-
-// ---------------------- Demo Data Builder ----------------------
-const VN_FIRST = [
-  "Nguyễn",
-  "Trần",
-  "Lê",
-  "Phạm",
-  "Hoàng",
-  "Vũ",
-  "Võ",
-  "Đỗ",
-  "Bùi",
-  "Phan",
-  "Đặng",
-  "Dương",
-];
-const VN_MID = [
-  "Văn",
-  "Thị",
-  "Hữu",
-  "Minh",
-  "Anh",
-  "Ngọc",
-  "Quốc",
-  "Phúc",
-  "Tuấn",
-  "Thanh",
-  "Hải",
-  "Thái",
-];
-const VN_LAST = [
-  "A",
-  "B",
-  "C",
-  "D",
-  "E",
-  "Khoa",
-  "Long",
-  "Trang",
-  "Lan",
-  "Hạnh",
-  "Linh",
-  "My",
-  "Huy",
-  "Nam",
-];
-
-const PROGRAMS = [
-  { name: "Tết 2025 – Lì xì vui vẻ", code: "TET25" },
-  { name: "Sinh nhật 10 năm", code: "B10Y" },
-  { name: "Kỷ niệm khách hàng", code: "CUST" },
-];
-const PRIZES = [
-  "E-voucher 50k",
-  "Combo Tết",
-  "Jackpot 5,000,000đ",
-  "Bộ quà sinh nhật",
-  "Bộ quà 10 năm",
-];
-
-const rand = (n: number) => Math.floor(Math.random() * n);
-const pick = <T,>(arr: T[]) => arr[rand(arr.length)];
-const randomName = () => `${pick(VN_FIRST)} ${pick(VN_MID)} ${pick(VN_LAST)}`;
-const randomPhone = () =>
-  "0" +
-  (9 + rand(1)).toString() +
-  Array.from({ length: 8 }, () => rand(10)).join("");
-const randomDateBetween = (from: Date, to: Date) =>
-  new Date(from.getTime() + Math.random() * (to.getTime() - from.getTime()));
-
-function buildDemoRows(count = 200): HistoryRow[] {
-  const now = new Date();
-  const first = new Date(now);
-  first.setMonth(first.getMonth() - 2);
-
-  const rows: HistoryRow[] = [];
-  for (let i = 0; i < count; i++) {
-    const pg = pick(PROGRAMS);
-    const prizePool = pg.name.includes("Tết")
-      ? ["E-voucher 50k", "Combo Tết", "Jackpot 5,000,000đ"]
-      : pg.name.includes("Sinh nhật")
-      ? ["Bộ quà sinh nhật", "Bộ quà 10 năm"]
-      : ["E-voucher 50k", "Combo Tết", "Bộ quà 10 năm"];
-    const joinedAt = randomDateBetween(first, now);
-    const isWinner = Math.random() > 0.55; // ~45% chỉ tham gia, chưa trúng
-    const wonAt = isWinner
-      ? new Date(joinedAt.getTime() + rand(5) * 3600_000)
-      : undefined;
-    const withName = Math.random() > 0.12;
-
-    rows.push({
-      id: crypto.randomUUID(),
-      name: withName ? randomName() : "",
-      phone: randomPhone(),
-      program: pg.name,
-      programCode: pg.code,
-      prize: isWinner ? pick(prizePool) : "",
-      drawAt: joinedAt.toISOString(),
-      wonAt: wonAt?.toISOString(),
-      address: Math.random() > 0.7 ? "Q.1, TP.HCM" : "",
-      idCard: Math.random() > 0.75 ? "0790xxxxxx" : "",
-      note: Math.random() > 0.85 ? "Đã gọi xác nhận" : "",
-    });
-  }
-
-  // newest first by drawAt
-  rows.sort((a, b) => +new Date(b.drawAt) - +new Date(a.drawAt));
-  return rows;
-}
 
 // ---------------------- Utils ----------------------
 const formatDateTime = (iso?: string) =>
@@ -205,52 +90,11 @@ const formatDateTime = (iso?: string) =>
 
 const toYMD = (isoOrDate: string | Date) => {
   const d = typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate;
+  if (isNaN(d.getTime())) return "";
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
-};
-
-const exportToCsv = (rows: HistoryRow[]) => {
-  const header = [
-    "Chương trình",
-    "Mã",
-    "Tên",
-    "Số điện thoại",
-    "Địa chỉ",
-    "Căn cước",
-    "Giải thưởng",
-    "Ghi chú",
-    "Thời gian bốc số",
-    "Thời gian trúng thưởng",
-  ];
-  const csv = [
-    header.join(","),
-    ...rows.map((r) =>
-      [
-        r.program,
-        r.programCode || "",
-        r.name || "",
-        r.phone,
-        r.address || "",
-        r.idCard || "",
-        r.prize || "",
-        r.note || "",
-        r.drawAt ? new Date(r.drawAt).toISOString() : "",
-        r.wonAt ? new Date(r.wonAt).toISOString() : "",
-      ]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(",")
-    ),
-  ].join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `lich-su-${Date.now()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
 };
 
 const maskPhone = (s: string, isMasked: boolean) => {
@@ -263,6 +107,7 @@ const maskPhone = (s: string, isMasked: boolean) => {
 const prizeVariant = (
   p: string
 ): "default" | "secondary" | "destructive" | "outline" => {
+  if (!p) return "outline";
   if (/jackpot/i.test(p)) return "destructive";
   if (/combo|bộ quà/i.test(p)) return "default";
   return "secondary";
@@ -282,15 +127,14 @@ type SortDir = "asc" | "desc";
 type TabKey = "participants" | "winners";
 
 const HistoryPage: React.FC = () => {
-  const { data: histories } = useGetProgramLuckyHistory({
-    c: "tungbunghethu1",
-  });
   // data
   const [rows, setRows] = useState<HistoryRow[]>([]);
 
   // filters
   const [q, setQ] = useState("");
-  const [program, setProgram] = useState<string>("all");
+  const [program, setProgram] = useState<{ name: string; code: string } | null>(
+    null
+  );
   const [prize, setPrize] = useState<string>("all");
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
@@ -303,39 +147,41 @@ const HistoryPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // 2. Fetch Data with Filters
+  const { data: listProgram } = useSearchProgram({ k: "" });
+
+  // Pass the search (k), program code (c), and prize (g) to the backend
+  const { data: histories, isLoading } = useGetProgramLuckyHistory({
+    c: program?.code || "",
+    g: prize === "all" ? "" : prize,
+    k: q,
+  });
+
   // phone mask
   const [hidePhone, setHidePhone] = useState(false);
-
-  // form dialog
-  const [openAdd, setOpenAdd] = useState(false);
-  const [fName, setFName] = useState("");
-  const [fPhone, setFPhone] = useState("");
-  const [fProgram, setFProgram] = useState<string>("");
-  const [fPrize, setFPrize] = useState<string>("");
-  const [fNote, setFNote] = useState("");
-  const [fDateDraw, setFDateDraw] = useState<string>(() => {
-    const d = new Date();
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().slice(0, 16);
-  });
-  const [fDateWin, setFDateWin] = useState<string>("");
 
   // tabs
   const [tab, setTab] = useState<TabKey>("participants");
 
   // options
   const programs = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.program))),
-    [rows]
+    () =>
+      listProgram?.map((item) => ({
+        name: item.name,
+        code: item.code,
+      })),
+    [listProgram]
   );
+
   const prizes = useMemo(
     () => Array.from(new Set(rows.map((r) => r.prize).filter(Boolean))),
     [rows]
   );
 
-  // Quick stats
-  const totalParticipations = rows.length; // Tổng lượt tham gia
-  const totalLuckyNumbers = rows.reduce((acc) => acc + 1, 0); // = rows.length (mỗi lượt bốc 1 số)
+  // ---------------------- Handlers ----------------------
+
+  const totalParticipations = rows.length;
+  const totalLuckyNumbers = rows.reduce((acc) => acc + 1, 0);
   const prizeSummary = useMemo(() => {
     const m = new Map<string, number>();
     rows.forEach((r) => {
@@ -357,23 +203,17 @@ const HistoryPage: React.FC = () => {
     return tab === "winners" ? rows.filter((r) => !!r.wonAt) : rows;
   }, [rows, tab]);
 
-  // Filtering + sorting
+  // Client-side Filtering + Sorting
+  // We keep Date filtering client-side for flexibility
   const filtered = useMemo(() => {
-    const ql = q.trim().toLowerCase();
     let list = baseList.filter((r) => {
-      const okQ =
-        !ql ||
-        [r.name || "", r.phone, r.prize || "", r.program, r.programCode || ""]
-          .join(" ")
-          .toLowerCase()
-          .includes(ql);
-      const okProgram = program === "all" || r.program === program;
-      const okPrize = prize === "all" || r.prize === prize;
-      const okFrom =
-        !from || toYMD(tab === "winners" ? r.wonAt || "" : r.drawAt) >= from;
-      const okTo =
-        !to || toYMD(tab === "winners" ? r.wonAt || "" : r.drawAt) <= to;
-      return okQ && okProgram && okPrize && okFrom && okTo;
+      // Date Logic
+      const dateToCheck = tab === "winners" ? r.wonAt : r.drawAt;
+      const ymd = toYMD(dateToCheck || "");
+      const okFrom = !from || ymd >= from;
+      const okTo = !to || ymd <= to;
+
+      return okFrom && okTo;
     });
 
     // sort
@@ -390,7 +230,7 @@ const HistoryPage: React.FC = () => {
     });
 
     return list;
-  }, [baseList, q, program, prize, from, to, sortBy, sortDir, tab]);
+  }, [baseList, from, to, sortBy, sortDir, tab]);
 
   const [pageCache, setPageCache] = useState<Record<TabKey, number>>({
     participants: 1,
@@ -409,7 +249,7 @@ const HistoryPage: React.FC = () => {
 
   const resetFilters = () => {
     setQ("");
-    setProgram("all");
+    setProgram(null);
     setPrize("all");
     setFrom("");
     setTo("");
@@ -457,70 +297,40 @@ const HistoryPage: React.FC = () => {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
+      toast.success("Đã sao chép SĐT");
     } catch {}
-  };
-
-  const addRow = () => {
-    const phone = fPhone.replace(/[^\d+]/g, "");
-    const dtDraw = fDateDraw ? new Date(fDateDraw) : new Date();
-    const dtWin = fDateWin ? new Date(fDateWin) : undefined;
-
-    if (!phone) {
-      alert("Số điện thoại không hợp lệ");
-      return;
-    }
-    if (!fProgram) {
-      alert("Chọn chương trình");
-      return;
-    }
-
-    const pg = PROGRAMS.find((x) => x.name === fProgram) || { code: "" };
-    const row: HistoryRow = {
-      id: crypto.randomUUID(),
-      name: fName.trim() || "",
-      phone,
-      program: fProgram,
-      programCode: pg.code || "",
-      prize: fPrize || "",
-      drawAt: dtDraw.toISOString(),
-      wonAt: dtWin ? dtWin.toISOString() : undefined,
-      note: fNote || "",
-    };
-    setRows((prev) => [row, ...prev]);
-    setOpenAdd(false);
-    setFName("");
-    setFPhone("");
-    setFNote("");
-    setFPrize("");
-    setFDateWin("");
   };
 
   const newestWithin24h = (iso?: string) =>
     iso ? Date.now() - new Date(iso).getTime() < 24 * 3600_000 : false;
 
-  // grid click => set filter prize
   const onPickPrize = (name: string) => {
     setPrize(name || "all");
     setTab("winners");
   };
 
+  // 3. Sync API data to State
   useEffect(() => {
+    if (!histories || !listProgram) return;
+
     setRows(
-      histories?.map((item, index) => ({
-        id: index.toString(),
+      histories.map((item: any, index: number) => ({
+        id: item.id || index.toString(),
+        id_program: item.id_program,
         drawAt: item.time,
         phone: item.consumer_phone,
-        prize: item.award_name,
-        program: "tung bung ",
-        address: "",
+        prize: item.award_name || "",
+        program: program?.name || item.program_name || "", // Fallback if API returns program name
+        address: item.address || "",
         idCard: item.number.toString(),
         name: item.consumer_name,
         note: "",
-        programCode: "",
+        programCode: program?.code || "",
         wonAt: item.award_time,
-      })) || []
+      }))
     );
   }, [histories]);
+
   return (
     <div className="p-6 space-y-6">
       <Card>
@@ -531,155 +341,15 @@ const HistoryPage: React.FC = () => {
                 Lịch sử bốc số & trúng thưởng
               </CardTitle>
               <CardDescription>
-                Tìm kiếm, lọc, thêm thủ công, xuất CSV. Chuyển tab để xem{" "}
-                <b>tham gia</b> hoặc <b>trúng thưởng</b>.
+                Tìm kiếm, lọc, xem danh sách <b>tham gia</b> hoặc{" "}
+                <b>trúng thưởng</b>.
               </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => exportToCsv(filtered)}
-              >
-                <Download className="h-4 w-4" /> Xuất CSV
-              </Button> */}
-              {/* <Button
-                variant={hidePhone ? "default" : "outline"}
-                className="gap-2"
-                onClick={() => setHidePhone((v) => !v)}
-                title={hidePhone ? "Hiện SĐT đầy đủ" : "Ẩn SĐT"}
-              >
-                {hidePhone ? (
-                  <Eye className="h-4 w-4" />
-                ) : (
-                  <EyeOff className="h-4 w-4" />
-                )}
-                {hidePhone ? "Hiện SĐT" : "Ẩn SĐT"}
-              </Button> */}
-              {/* 
-              <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" /> Thêm bản ghi
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-xl">
-                  <DialogHeader>
-                    <DialogTitle>Thêm tham gia / trúng thưởng</DialogTitle>
-                    <DialogDescription>
-                      Điền thông tin và lưu.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-3 pt-2">
-                    <div className="grid grid-cols-4 items-center gap-2">
-                      <Label className="col-span-1 text-sm text-muted-foreground">
-                        Tên KH
-                      </Label>
-                      <Input
-                        className="col-span-3"
-                        placeholder="Tuỳ chọn"
-                        value={fName}
-                        onChange={(e) => setFName(e.target.value)}
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-2">
-                      <Label className="col-span-1 text-sm text-muted-foreground">
-                        Số ĐT
-                      </Label>
-                      <Input
-                        className="col-span-3"
-                        placeholder="090..."
-                        value={fPhone}
-                        onChange={(e) => setFPhone(e.target.value)}
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-2">
-                      <Label className="col-span-1 text-sm text-muted-foreground">
-                        Chương trình
-                      </Label>
-                      <Select value={fProgram} onValueChange={setFProgram}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Chọn chương trình" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[
-                            ...new Set([
-                              ...PROGRAMS.map((p) => p.name),
-                              ...programs,
-                            ]),
-                          ].map((p) => (
-                            <SelectItem key={p} value={p}>
-                              {p}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-2">
-                      <Label className="col-span-1 text-sm text-muted-foreground">
-                        Giải thưởng
-                      </Label>
-                      <Select value={fPrize} onValueChange={setFPrize}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="(tuỳ chọn) chọn nếu đã trúng" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PRIZES.map((p) => (
-                            <SelectItem key={p} value={p}>
-                              {p}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-2">
-                      <Label className="col-span-1 text-sm text-muted-foreground">
-                        Thời gian bốc số
-                      </Label>
-                      <Input
-                        className="col-span-3"
-                        type="datetime-local"
-                        value={fDateDraw}
-                        onChange={(e) => setFDateDraw(e.target.value)}
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-2">
-                      <Label className="col-span-1 text-sm text-muted-foreground">
-                        Thời gian trúng
-                      </Label>
-                      <Input
-                        className="col-span-3"
-                        type="datetime-local"
-                        value={fDateWin}
-                        onChange={(e) => setFDateWin(e.target.value)}
-                      />
-                    </div>
-                    <div className="grid grid-cols-4 items-start gap-2">
-                      <Label className="col-span-1 text-sm text-muted-foreground">
-                        Ghi chú
-                      </Label>
-                      <Textarea
-                        className="col-span-3"
-                        value={fNote}
-                        onChange={(e) => setFNote(e.target.value)}
-                        placeholder="(tuỳ chọn) ví dụ: đã gọi xác nhận..."
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter className="pt-2">
-                    <Button variant="outline" onClick={() => setOpenAdd(false)}>
-                      Huỷ
-                    </Button>
-                    <Button onClick={addRow}>Lưu</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog> */}
             </div>
           </div>
 
           {/* Filters */}
-          <div className="mt-4 gap-2 grid grid-cols-1 sm:grid-cols-2 lg:flex">
-            <div className="relative w-full">
+          <div className="mt-4 gap-2 grid grid-cols-1 sm:grid-cols-2 lg:flex flex-wrap items-end">
+            <div className="relative w-full lg:w-auto lg:flex-1 min-w-[200px]">
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -689,54 +359,94 @@ const HistoryPage: React.FC = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             </div>
 
-            <Select value={program} onValueChange={setProgram}>
-              <SelectTrigger className="w-full lg:w-[220px]">
-                <SelectValue placeholder="Chương trình" />
+            <Select
+              value={program?.code || "all"}
+              onValueChange={(v) => {
+                if (v === "all") setProgram(null);
+                else {
+                  const p = programs?.find((i) => i.code === v);
+                  if (p) setProgram(p);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full lg:w-[200px]">
+                <SelectValue placeholder="Chương trình">
+                  {program ? program.name : "Tất cả chương trình"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả chương trình</SelectItem>
-                {programs.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p}
+                {programs?.map((p) => (
+                  <SelectItem key={p.code} value={p.code}>
+                    {p.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             <Select value={prize} onValueChange={setPrize}>
-              <SelectTrigger className="w-full lg:w-[220px]">
+              <SelectTrigger className="w-full lg:w-[180px]">
                 <SelectValue placeholder="Giải thưởng" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả giải thưởng</SelectItem>
-                {prizes.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p}
-                  </SelectItem>
-                ))}
+                {/* Dynamically filter prizes based on available data or hardcode standard ones */}
+                {prizes.length > 0 ? (
+                  prizes.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="p-2 text-xs text-muted-foreground text-center">
+                    Chưa có giải thưởng
+                  </div>
+                )}
               </SelectContent>
             </Select>
 
-            <div className="flex gap-2">
+            {/* Date Inputs */}
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+              <Input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="w-full lg:w-[140px]"
+                title="Từ ngày"
+              />
+              <span className="text-muted-foreground">-</span>
+              <Input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="w-full lg:w-[140px]"
+                title="Đến ngày"
+              />
+            </div>
+
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant="secondary"
+                size="sm"
                 className="gap-2"
                 onClick={() => quickRange("today")}
               >
-                <Filter className="h-4 w-4" /> Hôm nay
+                <Filter className="h-3.5 w-3.5" /> Hôm nay
               </Button>
-              <Button variant="secondary" onClick={() => quickRange("7d")}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => quickRange("7d")}
+              >
                 7 ngày
-              </Button>
-              <Button variant="secondary" onClick={() => quickRange("month")}>
-                Tháng này
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 className="gap-2"
                 onClick={resetFilters}
               >
-                <RotateCcw className="h-4 w-4" /> Xoá lọc
+                <RotateCcw className="h-3.5 w-3.5" /> Reset
               </Button>
             </div>
           </div>
@@ -745,53 +455,55 @@ const HistoryPage: React.FC = () => {
         {/* Quick stats */}
         <CardContent className="pb-0">
           <div className="grid gap-3 md:grid-cols-3">
-            <Card className="border-dashed">
+            <Card className="border-dashed shadow-none">
               <CardContent className="p-4">
                 <div className="text-sm text-muted-foreground">
-                  Tổng số lượt tham gia
+                  Tổng lượt tham gia
                 </div>
                 <div className="mt-1 text-2xl font-semibold">
-                  {totalParticipations}
+                  {isLoading ? "..." : totalParticipations}
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-dashed">
+            <Card className="border-dashed shadow-none">
               <CardContent className="p-4">
                 <div className="text-sm text-muted-foreground">
-                  Tổng số may mắn bốc
+                  Tổng mã dự thưởng
                 </div>
                 <div className="mt-1 text-2xl font-semibold">
-                  {totalLuckyNumbers}
+                  {isLoading ? "..." : totalLuckyNumbers}
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-dashed">
+            <Card className="border-dashed shadow-none">
               <CardContent className="p-4">
                 <div className="text-sm text-muted-foreground">
-                  Grid view giải (click để lọc)
+                  Phân bố giải thưởng
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {prizeSummary.slice(0, 8).map(([k, v]) => (
                     <button
                       key={k}
                       onClick={() => onPickPrize(k)}
-                      title="Lọc theo giải"
-                      className="rounded-full ring-1 ring-border px-2.5 py-1 text-xs hover:bg-muted"
+                      title="Lọc theo giải này"
+                      className="rounded-full ring-1 ring-border px-2.5 py-1 text-xs hover:bg-muted transition-colors"
                     >
                       <span className={cn("mr-1 inline-flex")}>
                         <Badge
                           variant={prizeVariant(k)}
-                          className="rounded-full"
+                          className="rounded-full px-1.5 py-0 text-[10px] h-4"
                         >
                           {k}
                         </Badge>
                       </span>
-                      <span className="text-muted-foreground">({v})</span>
+                      <span className="text-muted-foreground font-medium">
+                        ({v})
+                      </span>
                     </button>
                   ))}
                   {prizeSummary.length === 0 && (
                     <span className="text-xs text-muted-foreground">
-                      Chưa có dữ liệu trúng
+                      Chưa có dữ liệu trúng thưởng
                     </span>
                   )}
                 </div>
@@ -800,10 +512,10 @@ const HistoryPage: React.FC = () => {
           </div>
         </CardContent>
 
-        <Separator />
+        <Separator className="my-4" />
 
         {/* Tabs */}
-        <CardContent className="pt-4">
+        <CardContent className="pt-0">
           <Tabs
             value={tab}
             onValueChange={(v) => {
@@ -813,10 +525,10 @@ const HistoryPage: React.FC = () => {
             }}
             className="w-full"
           >
-            <TabsList className="flex flex-wrap gap-1 rounded-2xl bg-muted/40 p-1">
+            <TabsList className="flex flex-wrap gap-1 rounded-lg bg-muted/40 p-1 w-fit">
               <TabsTrigger
                 value="participants"
-                className="rounded-xl px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
+                className="px-4 py-2"
                 onClick={() =>
                   setPageCache((m) => ({ ...m, participants: page }))
                 }
@@ -825,7 +537,7 @@ const HistoryPage: React.FC = () => {
               </TabsTrigger>
               <TabsTrigger
                 value="winners"
-                className="rounded-xl px-3 py-2 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border"
+                className="px-4 py-2"
                 onClick={() => setPageCache((m) => ({ ...m, winners: page }))}
               >
                 Danh sách trúng thưởng
@@ -886,7 +598,7 @@ const HistoryPage: React.FC = () => {
   );
 };
 
-// ---------------------- Table (reusable cho 2 tab) ----------------------
+// ---------------------- Table (reusable) ----------------------
 function DataTable(props: {
   rows: HistoryRow[];
   totalFiltered: number;
@@ -918,7 +630,6 @@ function DataTable(props: {
     sortDir,
     toggleSort,
     hidePhone,
-    programCodes,
     mode,
     copyToClipboard,
     newestWithin24h,
@@ -942,19 +653,19 @@ function DataTable(props: {
   );
 
   return (
-    <div className="space-y-4 w-[calc(100vw-350px)]">
+    <div className="space-y-4 w-full">
       <ScrollArea className="h-[520px] rounded-md border">
         <Table className="text-sm">
-          <TableHeader className="sticky top-0 z-10 bg-background">
+          <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
             <TableRow className="[&>th]:h-10 [&>th]:px-3">
               <TableHead className="w-10 text-center">#</TableHead>
               {headerCell("Chương trình", "program")}
-              {headerCell("Số quay thưởng", "idCard", "w-[90px]")}
+              {headerCell("Số quay thưởng", "idCard", "w-[110px]")}
               {headerCell("Tên khách hàng", "name")}
               {headerCell("Số điện thoại", "phone")}
-              {headerCell("Thời gian bốc số", "drawAt", "w-[200px]")}
-              {headerCell("Thời gian trúng thưởng", "wonAt", "w-[200px]")}
-              <TableHead className="w-[72px] text-right">Thao tác</TableHead>
+              {headerCell("Thời gian tham gia", "drawAt", "w-[180px]")}
+              {headerCell("Thời gian trúng", "wonAt", "w-[180px]")}
+              <TableHead className="w-[60px] text-right">#</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -964,20 +675,24 @@ function DataTable(props: {
                 key={r.id}
                 className="[&>td]:px-3 [&>td]:py-2 hover:bg-muted/50"
               >
-                <TableCell className="text-center">
+                <TableCell className="text-center text-muted-foreground">
                   {(page - 1) * pageSize + idx + 1}
                 </TableCell>
 
-                <TableCell className="truncate max-w-[220px]">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{r.program}</span>
+                <TableCell className="truncate max-w-[200px]">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium text-xs md:text-sm">
+                      {r.program}
+                    </span>
                     {r.prize && r.wonAt && (
-                      <Badge
-                        variant={prizeVariant(r.prize)}
-                        className="rounded-full"
-                      >
-                        {r.prize}
-                      </Badge>
+                      <span className="flex">
+                        <Badge
+                          variant={prizeVariant(r.prize)}
+                          className="rounded-sm px-1.5 py-0 text-[10px] font-normal"
+                        >
+                          {r.prize}
+                        </Badge>
+                      </span>
                     )}
                   </div>
                 </TableCell>
@@ -986,41 +701,33 @@ function DataTable(props: {
 
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px]">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">
                       {(r.name && r.name[0]) || "?"}
                     </div>
-                    <div>
-                      {r.name?.trim() ? (
-                        r.name
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
+                    <div className="flex flex-col">
+                      <span>{r.name?.trim() || "—"}</span>
                       {(mode === "participants"
                         ? newestWithin24h(r.drawAt)
                         : newestWithin24h(r.wonAt)) && (
-                        <Badge
-                          className="ml-2 h-5 rounded-full px-2 text-[11px]"
-                          variant="outline"
-                        >
+                        <span className="text-[10px] text-green-600 font-medium">
                           Mới
-                        </Badge>
+                        </span>
                       )}
                     </div>
                   </div>
                 </TableCell>
 
                 <TableCell className="font-mono">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span>{maskPhone(r.phone, hidePhone)}</span>
                     <TooltipProvider>
-                      <Tooltip>
+                      <Tooltip delayDuration={100}>
                         <TooltipTrigger asChild>
                           <button
-                            className="rounded p-1 hover:bg-muted"
+                            className="rounded p-1 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                             onClick={() => copyToClipboard(r.phone)}
-                            title="Sao chép SĐT"
                           >
-                            <Copy className="h-3.5 w-3.5" />
+                            <Copy className="h-3 w-3" />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent>Sao chép SĐT</TooltipContent>
@@ -1029,8 +736,12 @@ function DataTable(props: {
                   </div>
                 </TableCell>
 
-                <TableCell>{formatDateTime(r.drawAt)}</TableCell>
-                <TableCell>{formatDateTime(r.wonAt)}</TableCell>
+                <TableCell className="text-muted-foreground text-xs md:text-sm">
+                  {formatDateTime(r.drawAt)}
+                </TableCell>
+                <TableCell className="text-muted-foreground text-xs md:text-sm">
+                  {r.wonAt ? formatDateTime(r.wonAt) : "—"}
+                </TableCell>
 
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -1041,16 +752,13 @@ function DataTable(props: {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={() => navigator.clipboard.writeText(r.phone)}
+                        onClick={() => copyToClipboard(r.phone)}
                       >
                         <Copy className="mr-2 h-4 w-4" /> Sao chép SĐT
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => alert(JSON.stringify(r, null, 2))}
-                      >
-                        <Info className="mr-2 h-4 w-4" /> Xem chi tiết
-                      </DropdownMenuItem>
+                      {/* Placeholder for detail view if you have a modal */}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -1059,9 +767,10 @@ function DataTable(props: {
 
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={11} className="h-[120px] text-center">
-                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    Không có dữ liệu phù hợp
+                <TableCell colSpan={8} className="h-[120px] text-center">
+                  <div className="flex flex-col items-center justify-center text-sm text-muted-foreground gap-2">
+                    <Info className="h-8 w-8 opacity-20" />
+                    <span>Không có dữ liệu phù hợp</span>
                   </div>
                 </TableCell>
               </TableRow>
@@ -1071,22 +780,26 @@ function DataTable(props: {
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
-      {/* footer */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      {/* Footer Paging */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <div className="text-sm text-muted-foreground">
-          Hiển thị <span className="font-medium">{rows.length}</span> /{" "}
-          <span className="font-medium">{totalFiltered}</span> kết quả
-          {totalFiltered !== totalAll && <> (tổng {totalAll})</>}
+          Hiển thị{" "}
+          <span className="font-medium text-foreground">{rows.length}</span> /{" "}
+          <span className="font-medium text-foreground">{totalFiltered}</span>{" "}
+          kết quả
+          {totalFiltered !== totalAll && <> (trong tổng số {totalAll})</>}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm">
-            <span>Kích thước trang</span>
+            <span className="text-muted-foreground hidden sm:inline">
+              Hàng mỗi trang
+            </span>
             <Select
               value={String(pageSize)}
               onValueChange={(v) => onPageSize(Number(v))}
             >
-              <SelectTrigger className="h-8 w-[86px]">
+              <SelectTrigger className="h-8 w-[70px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1099,21 +812,23 @@ function DataTable(props: {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button
               size="icon"
               variant="outline"
+              className="h-8 w-8"
               disabled={page <= 1}
               onClick={() => onPage(Math.max(1, page - 1))}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="min-w-[120px] text-center text-sm">
-              Trang <span className="font-medium">{page}</span> / {maxPage}
+            <div className="min-w-[80px] text-center text-sm font-medium">
+              {page} / {maxPage}
             </div>
             <Button
               size="icon"
               variant="outline"
+              className="h-8 w-8"
               disabled={page >= maxPage}
               onClick={() => onPage(Math.min(maxPage, page + 1))}
             >

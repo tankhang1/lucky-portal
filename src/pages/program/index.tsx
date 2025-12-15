@@ -232,7 +232,7 @@ export default function ProgramPage() {
                       <div className="h-16 w-16 overflow-hidden rounded-lg ring-1 ring-border bg-muted/20">
                         {p.image_banner ? (
                           <img
-                            src={p.image_banner}
+                            src={`${p.image_banner}?t=${new Date().getTime()}`}
                             alt=""
                             className="h-full w-full object-cover"
                           />
@@ -327,7 +327,7 @@ export default function ProgramPage() {
           <DialogTitle></DialogTitle>
           <DialogContent>
             <img
-              src={previewImage!}
+              src={`${previewImage}?t=${new Date().getTime()}`}
               alt=""
               className="w-full h-[400px] rounded-lg object-contain"
             />

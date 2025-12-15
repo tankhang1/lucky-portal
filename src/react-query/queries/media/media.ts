@@ -13,24 +13,28 @@ import type { AxiosError } from "axios";
 export const useUploadImage = () => {
   return useMutation<TUploadFileRes, AxiosError<null>, TUploadFileReq>({
     mutationFn: uploadImage,
+    gcTime: 0, // Disable caching
   });
 };
 
 export const useUploadThumbnail = () => {
   return useMutation<TUploadFileRes, AxiosError<null>, TUploadFileReq>({
     mutationFn: uploadThumbnail,
+    gcTime: 0, // Disable caching
   });
 };
 
 export const useUploadPdf = () => {
   return useMutation<TUploadFileRes, AxiosError<null>, TUploadFileReq>({
     mutationFn: uploadPdf,
+    gcTime: 0, // Disable caching
   });
 };
 
 export const useUploadAudio = () => {
   return useMutation<TUploadFileRes, AxiosError<null>, TUploadFileReq>({
     mutationFn: uploadAudio,
+    gcTime: 0, // Disable caching
   });
 };
 
@@ -41,5 +45,6 @@ export const useUploadGift = () => {
     TUploadFileReq & { g: string }
   >({
     mutationFn: uploadGift,
+    gcTime: 0, // Disable caching
   });
 };

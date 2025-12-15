@@ -134,6 +134,8 @@ export type TProgramLuckyHistory = {
 };
 export type TProgramLuckyHistoryReq = {
   c: string;
+  g?: string;
+  k?: string;
 };
 export type TProgramLuckyHistoryRes = TProgramLuckyHistory[];
 export const getProgramLuckyHistory = async (

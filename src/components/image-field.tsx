@@ -87,7 +87,7 @@ export function ImageField({
           >
             {value ? (
               <img
-                src={value}
+                src={`${value}?t=${new Date().getTime()}`}
                 alt=""
                 className="h-full w-full object-cover transition group-hover:scale-[1.01]"
               />
@@ -155,7 +155,7 @@ export function ImageField({
           <DialogContent className="max-w-3xl">
             {preview ? (
               <img
-                src={preview}
+                src={`${preview}?t=${new Date().getTime()}`}
                 alt=""
                 className="w-full h-auto rounded-xl object-contain"
               />
