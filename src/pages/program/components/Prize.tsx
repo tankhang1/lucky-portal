@@ -416,38 +416,46 @@ const PrizeSection = ({ code }: { code: string }) => {
     }
 
     if (isNew) {
-      await addPrize(payload, {
-        onSuccess: (data) => {
-          setItems((prev) =>
-            prev.map((p) => (p === item ? { ...item, isNew: false } : p))
-          );
-          toast.success(data.message);
-        },
-        onError: (error) => {
-          //@ts-expect-error no check
-          toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
-        },
-        onSettled: () => {
-          queryClient.invalidateQueries({
-            queryKey: [QUERY_KEY.PROGRAM.GIFT_LIST],
-          });
-        },
-      });
+      const isConfirmed = window.confirm(
+        "Bạn có chắc chắn muốn thêm mới giải thưởng này không?"
+      );
+      if (isConfirmed)
+        await addPrize(payload, {
+          onSuccess: (data) => {
+            setItems((prev) =>
+              prev.map((p) => (p === item ? { ...item, isNew: false } : p))
+            );
+            toast.success(data.message);
+          },
+          onError: (error) => {
+            //@ts-expect-error no check
+            toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+          },
+          onSettled: () => {
+            queryClient.invalidateQueries({
+              queryKey: [QUERY_KEY.PROGRAM.GIFT_LIST],
+            });
+          },
+        });
     } else {
-      await updatePrize(payload, {
-        onSuccess: (data) => {
-          toast.success(data.message);
-        },
-        onError: (error) => {
-          //@ts-expect-error no check
-          toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
-        },
-        onSettled: () => {
-          queryClient.invalidateQueries({
-            queryKey: [QUERY_KEY.PROGRAM.GIFT_LIST],
-          });
-        },
-      });
+      const isConfirmed = window.confirm(
+        "Bạn có chắc chắn muốn cập nhật thông tin giải thưởng này không?"
+      );
+      if (isConfirmed)
+        await updatePrize(payload, {
+          onSuccess: (data) => {
+            toast.success(data.message);
+          },
+          onError: (error) => {
+            //@ts-expect-error no check
+            toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+          },
+          onSettled: () => {
+            queryClient.invalidateQueries({
+              queryKey: [QUERY_KEY.PROGRAM.GIFT_LIST],
+            });
+          },
+        });
     }
   };
 
@@ -455,7 +463,20 @@ const PrizeSection = ({ code }: { code: string }) => {
   const handleDeleteItem = (item: TPrizeState) => {
     if (confirm("Bạn có chắc chắn muốn xóa giải thưởng này?")) {
       const { isNew, id, ...payload } = item;
-      deactivePrize(payload);
+      deactivePrize(payload, {
+        onSuccess: (data) => {
+          toast.success(data.message);
+        },
+        onError: (error) => {
+          //@ts-expect-error no check
+          toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+        },
+        onSettled: () => {
+          queryClient.invalidateQueries({
+            queryKey: [QUERY_KEY.PROGRAM.GIFT_LIST],
+          });
+        },
+      });
       // Optimistic update: Xóa khỏi list ngay lập tức
       setItems((prev) => prev.filter((i) => i.gift_code !== item.gift_code));
     }

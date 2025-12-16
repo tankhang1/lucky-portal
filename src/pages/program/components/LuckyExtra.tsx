@@ -104,26 +104,28 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
     const extra = extraList[index];
     const item = `${extra.number}@@${extra.repeat}@@${extra.giftCode}`;
     if (activeProgram?.number_extra?.includes(item)) {
-      removeNumberExtra(
-        {
-          campaign_code: activeProgram?.code,
-          number_extra: +extraList?.[index]?.number,
-        },
-        {
-          onSuccess: (data) => {
-            toast.success(data.message);
+      if (confirm(`Bạn có chắc chắn muốn xoá số ${extra.number}`)) {
+        removeNumberExtra(
+          {
+            campaign_code: activeProgram?.code,
+            number_extra: +extraList?.[index]?.number,
           },
-          onError: (error) => {
-            //@ts-expect-error no check
-            toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
-          },
-          onSettled: () => {
-            queryClient.invalidateQueries({
-              queryKey: [QUERY_KEY.PROGRAM.LIST],
-            });
-          },
-        }
-      );
+          {
+            onSuccess: (data) => {
+              toast.success(data.message);
+            },
+            onError: (error) => {
+              //@ts-expect-error no check
+              toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+            },
+            onSettled: () => {
+              queryClient.invalidateQueries({
+                queryKey: [QUERY_KEY.PROGRAM.LIST],
+              });
+            },
+          }
+        );
+      }
     } else {
       setExtraList((prev) => prev.filter((_, i) => i !== index));
     }

@@ -103,25 +103,27 @@ export default function ProgramPage() {
     ]);
   };
   const onDeleteProgramInfo = (code: string) => {
-    deleteProgramInfo(
-      {
-        code,
-      },
-      {
-        onSuccess: (data) => {
-          toast.success(data.message);
+    if (confirm(`Bạn có chắc chắn muốn tạm dừng chương trình ${code}`)) {
+      deleteProgramInfo(
+        {
+          code,
         },
-        onError: (error) => {
-          //@ts-expect-error no check
-          toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
-        },
-        onSettled: () => {
-          queryClient.invalidateQueries({
-            queryKey: [QUERY_KEY.PROGRAM.LIST],
-          });
-        },
-      }
-    );
+        {
+          onSuccess: (data) => {
+            toast.success(data.message);
+          },
+          onError: (error) => {
+            //@ts-expect-error no check
+            toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+          },
+          onSettled: () => {
+            queryClient.invalidateQueries({
+              queryKey: [QUERY_KEY.PROGRAM.LIST],
+            });
+          },
+        }
+      );
+    }
   };
   const stats = useMemo(() => {
     const total = listProgram?.length || 0;

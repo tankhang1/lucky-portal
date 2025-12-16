@@ -1,12 +1,5 @@
 import { SortableRow } from "@/components/sortable-row";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollBar } from "@/components/ui/scroll-area";
 import {
@@ -87,26 +80,30 @@ const CustomerSection = ({ code }: TCustomerSection) => {
     }
   };
   const onDeleteCustomer = (phone: string) => {
-    deleteCustomer(
-      {
-        campaign_code: code,
-        consumer_phone: phone,
-      },
-      {
-        onSuccess: (data) => {
-          toast.success(data.message);
-        },
-        onError: (error) => {
-          //@ts-expect-error no check
-          toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
-        },
-        onSettled: () => {
-          queryClient.invalidateQueries({
-            queryKey: [QUERY_KEY.PROGRAM.CUSTOMER_LIST],
-          });
-        },
-      }
+    const isConfirmed = window.confirm(
+      `Bạn có chắc chắn muốn xoá khách hàng ${phone}`
     );
+    if (isConfirmed)
+      deleteCustomer(
+        {
+          campaign_code: code,
+          consumer_phone: phone,
+        },
+        {
+          onSuccess: (data) => {
+            toast.success(data.message);
+          },
+          onError: (error) => {
+            //@ts-expect-error no check
+            toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+          },
+          onSettled: () => {
+            queryClient.invalidateQueries({
+              queryKey: [QUERY_KEY.PROGRAM.CUSTOMER_LIST],
+            });
+          },
+        }
+      );
   };
   return (
     <div className="space-y-6 px-4">

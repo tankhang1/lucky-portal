@@ -216,9 +216,15 @@ export default function InfoSection({
     };
 
     if (activeProgram?.id !== -1) {
-      updateProgram(payload, mutationOptions);
+      const isConfirmed = window.confirm(
+        "Bạn có chắc chắn muốn lưu các thay đổi cho chương trình này không?"
+      );
+      if (isConfirmed) updateProgram(payload, mutationOptions);
     } else {
-      addProgram(payload, mutationOptions);
+      const isConfirmed = window.confirm(
+        "Bạn có chắc chắn muốn tạo mới chương trình này không?"
+      );
+      if (isConfirmed) addProgram(payload, mutationOptions);
     }
     console.log("Submitting form:", payload);
   };
