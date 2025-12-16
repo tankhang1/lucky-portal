@@ -28,7 +28,7 @@ import type {
 } from "@/react-query/services/program/program.service";
 
 import { ScrollArea } from "@radix-ui/react-scroll-area";
-import { Clock, Trash2 } from "lucide-react";
+import { Clock, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import CustomerLuckyModal from "./CustomerLuckyModal";
 import { toast } from "react-toastify";
@@ -120,9 +120,8 @@ const CustomerSection = ({ code }: TCustomerSection) => {
       <div className="space-y-4">
         {/* Thêm nhanh */}
         <div className="rounded-lg border bg-muted/30 p-3">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-12">
+          <div className="flex items-center gap-3">
             <Input
-              className="sm:col-span-3"
               placeholder="Tên KH"
               value={form.consumer_name}
               onChange={(e) =>
@@ -130,7 +129,6 @@ const CustomerSection = ({ code }: TCustomerSection) => {
               }
             />
             <Input
-              className="sm:col-span-3"
               placeholder="Số điện thoại"
               value={form.consumer_phone}
               onChange={(e) =>
@@ -138,7 +136,6 @@ const CustomerSection = ({ code }: TCustomerSection) => {
               }
             />
             <Input
-              className="sm:col-span-3"
               placeholder="Mã khách hàng"
               value={form.consumer_code}
               onChange={(e) =>
@@ -147,10 +144,11 @@ const CustomerSection = ({ code }: TCustomerSection) => {
             />
 
             <Button
-              className="sm:col-span-1"
+              className=" gap-2"
               onClick={onAddCustomer}
               disabled={isAddingCustomer}
             >
+              {isAddingCustomer && <Loader2 className="h-4 w-4 animate-spin" />}
               {isAddingCustomer ? "Đang xử lí" : "Thêm"}
             </Button>
           </div>

@@ -47,16 +47,6 @@ type TPrizeState = TProgramPrizeReq & {
   status?: number;
 };
 
-// --- Helper: File to Base64 ---
-const fileToDataUrl = async (file: File) => {
-  return await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
 // --- Row Component ---
 const PrizeRow = ({
   item,
@@ -159,7 +149,20 @@ const PrizeRow = ({
       }`}
     >
       <TableCell className="text-center">{index + 1}</TableCell>
-
+      {/* Gift Code */}
+      <TableCell className="text-left">
+        <Input
+          disabled={!isEditing || (!item.isNew && !!item.gift_code)} // Code thường không cho sửa khi đã tạo
+          value={formData.gift_code}
+          onChange={(e) => handleChange("gift_code", e.target.value)}
+          placeholder="Mã quà..."
+          className={`h-8 font-mono text-xs${
+            !isEditing
+              ? "border-transparent bg-transparent shadow-none px-0"
+              : ""
+          }`}
+        />
+      </TableCell>
       {/* Gift Name */}
       <TableCell>
         <Input
@@ -189,7 +192,20 @@ const PrizeRow = ({
           }`}
         />
       </TableCell>
-
+      <TableCell>
+        <Input
+          disabled={!isEditing}
+          value={formData.price}
+          type="number"
+          onChange={(e) => handleChange("price", +e.target.value)}
+          placeholder="Giá trị"
+          className={`h-8 ${
+            !isEditing
+              ? "border-transparent bg-transparent shadow-none px-0"
+              : ""
+          }`}
+        />
+      </TableCell>
       {/* Image Handling - Chỉ cho phép sửa khi isEditing = true */}
       <TableCell>
         <div className="flex items-center gap-3">
@@ -254,21 +270,6 @@ const PrizeRow = ({
         </div>
       </TableCell>
 
-      {/* Gift Code */}
-      <TableCell className="text-left">
-        <Input
-          disabled={!isEditing || (!item.isNew && !!item.gift_code)} // Code thường không cho sửa khi đã tạo
-          value={formData.gift_code}
-          onChange={(e) => handleChange("gift_code", e.target.value)}
-          placeholder="Mã quà..."
-          className={`h-8 font-mono text-xs${
-            !isEditing
-              ? "border-transparent bg-transparent shadow-none px-0"
-              : ""
-          }`}
-        />
-      </TableCell>
-
       {/* Limits */}
       <TableCell className="text-left">
         <Input
@@ -302,9 +303,9 @@ const PrizeRow = ({
           <Input
             disabled={true}
             type="text"
-            value={formData.status === 1 ? "Hoạt động" : "Tạm ngưng"}
+            value={formData.status === 0 ? "Hoạt động" : "Tạm ngưng"}
             className={`text-right h-8 border-transparent bg-transparent shadow-none px-0 ${
-              formData.status === 1 ? "text-green-500" : "text-red-500"
+              formData.status === 0 ? "text-green-500" : "text-red-500"
             } `}
           />
         )}
@@ -343,7 +344,7 @@ const PrizeRow = ({
                 <Pencil className="h-4 w-4" />
               </ActionIcon>
               {/* Nút Xóa */}
-              {formData.status === 1 && (
+              {formData.status === 0 && (
                 <ActionIcon label="Xoá" onClick={() => onDelete(item)}>
                   <Trash2 className="h-4 w-4" />
                 </ActionIcon>
@@ -377,6 +378,8 @@ const PrizeSection = ({ code }: { code: string }) => {
         limits: g.limits || g.counter || 0,
         type_extra: g.type_extra || 0,
         id: g.id,
+        price: g.price || 0,
+        status: g.status || 0,
       }));
       setItems(mapped);
     }
@@ -478,10 +481,11 @@ const PrizeSection = ({ code }: { code: string }) => {
           <TableHeader className="sticky top-0 bg-background/95 backdrop-blur z-10">
             <TableRow className="[&>th]:h-10 [&>th]:px-3">
               <TableHead className="w-10 text-center">#</TableHead>
+              <TableHead className="min-w-[160px]">Mã quà</TableHead>
               <TableHead className="min-w-[180px]">Tên quà</TableHead>
               <TableHead className="min-w-[180px]">Tên giải</TableHead>
+              <TableHead className="min-w-[180px]">Giá trị</TableHead>
               <TableHead className="min-w-[100px]">Hình ảnh</TableHead>
-              <TableHead className="min-w-[160px]">Mã quà</TableHead>
               <TableHead className="min-w-[140px] text-right">
                 Số lượng
               </TableHead>

@@ -243,6 +243,7 @@ export type TProgramPrizeReq = {
   gift_name: string;
   gift_image: string;
   gift_image_thumb: string;
+  price?: number;
   limits: number;
   type_extra: number;
 };
