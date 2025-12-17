@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  useGetListExtraNumber,
   useRemoveNumberExtra,
   useSearchGift,
   useUpdateNumberExtra,
@@ -53,6 +54,9 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
     type: "1",
   });
 
+  const { data: extraNumbers } = useGetListExtraNumber({
+    campaignCode: activeProgram?.code,
+  });
   const { mutate: updateNumberExtra, isPending: isUpdateNumberExtra } =
     useUpdateNumberExtra();
   const { mutate: removeNumberExtra } = useRemoveNumberExtra();
@@ -61,22 +65,18 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
 
   // 1. Parse the string from activeProgram into local state on load
   useEffect(() => {
-    if (!activeProgram?.number_extra) {
+    if (!extraNumbers) {
       setExtraList([]);
       return;
     }
 
     try {
-      const list = activeProgram.number_extra.split(",");
-      const parsedList = list
-        .map((item) => {
-          // Format: number@@repeat@@giftId
-          const parts = item.split("@@");
-          if (parts.length < 3) return null;
+      const parsedList = extraNumbers
+        ?.map((item) => {
           return {
-            number: parts[0],
-            repeat: parts[1],
-            giftCode: parts[2],
+            number: item.numb,
+            repeat: item.number_loop,
+            giftCode: item.gift_code,
           };
         })
         .filter((item) => item !== null); // Remove invalid rows
@@ -86,7 +86,7 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
       console.error("Error parsing number_extra:", error);
       setExtraList([]);
     }
-  }, [activeProgram]);
+  }, [extraNumbers]);
 
   // 2. Handle adding a new empty row
   const handleAdd = () => {
@@ -120,7 +120,7 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
             },
             onSettled: () => {
               queryClient.invalidateQueries({
-                queryKey: [QUERY_KEY.PROGRAM.LIST],
+                queryKey: [QUERY_KEY.PROGRAM.EXTRA_NUMBER_LIST],
               });
             },
           }
@@ -161,12 +161,14 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
     updateNumberExtra(payload, {
       onSuccess: (data) => {
         toast.success(data.message);
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY.PROGRAM.LIST], // Ensure you import your query keys
-        });
       },
       onError: () => {
         toast.error("Có lỗi xảy ra khi cập nhật!");
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({
+          queryKey: [QUERY_KEY.PROGRAM.EXTRA_NUMBER_LIST], // Ensure you import your query keys
+        });
       },
     });
   };

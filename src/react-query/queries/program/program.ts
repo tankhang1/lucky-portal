@@ -8,6 +8,7 @@ import {
   deactiveProgramPrize,
   deleteCustomer,
   deleteProgramInfo,
+  getListExtraNumber,
   getProgramDetailNumber,
   getProgramLuckyHistory,
   removeExtraNumber,
@@ -25,6 +26,8 @@ import {
   type TDeleteCustomerRes,
   type TDeleteProgramInfoReq,
   type TDeleteProgramInfoRes,
+  type TGetExtraNumberReq,
+  type TGetExtraNumberRes,
   type TGetProgramDetailNumberReq,
   type TGetProgramDetailNumberRes,
   type TProgramLuckyHistoryReq,
@@ -137,6 +140,15 @@ export const useRemoveNumberExtra = () => {
     TRemoveNumberExtraReq
   >({
     mutationFn: removeExtraNumber,
+  });
+};
+export const useGetListExtraNumber = (params: TGetExtraNumberReq) => {
+  return useQuery<TGetExtraNumberRes, AxiosError<null>>({
+    queryKey: [QUERY_KEY.PROGRAM.EXTRA_NUMBER_LIST, params],
+    queryFn: () => getListExtraNumber(params),
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
   });
 };
 export const useUpdateProgramPrize = () => {

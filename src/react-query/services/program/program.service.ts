@@ -308,3 +308,21 @@ export const deleteCustomer = async (
   const { data } = await api.post(PATH.PROGRAM.DELETE_CUSTOMER, body);
   return data;
 };
+
+export type TGetExtraNumberReq = {
+  campaignCode: string;
+};
+export type TExtraNumber = {
+  gift_code: string;
+  gift_name: string;
+  number_loop: number;
+  numb: number;
+};
+export type TGetExtraNumberRes = TExtraNumber[];
+
+export const getListExtraNumber = async (
+  params: TGetExtraNumberReq
+): Promise<TGetExtraNumberRes> => {
+  const { data } = await api.get(PATH.PROGRAM.LIST_EXTRA_NUMBER, { params });
+  return data;
+};

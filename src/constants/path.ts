@@ -18,6 +18,7 @@ const PATH = {
     DELETE_PRIZE: "/program/remove-gift",
     ADD_CUSTOMER: "/program/add-customer",
     DELETE_CUSTOMER: "/program/remove-consumer",
+    LIST_EXTRA_NUMBER: "/collect/number-extra/list",
   },
   MEDIA: {
     UPLOAD_IMAGE: "/upload-files/image",
