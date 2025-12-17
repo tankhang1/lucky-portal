@@ -157,20 +157,20 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
       code: activeProgram.code || "",
       number_extra: number_extra,
     };
-
-    updateNumberExtra(payload, {
-      onSuccess: (data) => {
-        toast.success(data.message);
-      },
-      onError: () => {
-        toast.error("Có lỗi xảy ra khi cập nhật!");
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY.PROGRAM.EXTRA_NUMBER_LIST], // Ensure you import your query keys
-        });
-      },
-    });
+    if (confirm("Bạn có muốn cập nhật nhật danh sách giải extra"))
+      updateNumberExtra(payload, {
+        onSuccess: (data) => {
+          toast.success(data.message);
+        },
+        onError: () => {
+          toast.error("Có lỗi xảy ra khi cập nhật!");
+        },
+        onSettled: () => {
+          queryClient.invalidateQueries({
+            queryKey: [QUERY_KEY.PROGRAM.EXTRA_NUMBER_LIST], // Ensure you import your query keys
+          });
+        },
+      });
   };
 
   return (
