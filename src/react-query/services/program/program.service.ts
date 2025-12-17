@@ -282,6 +282,7 @@ export type TCustomerForm = {
   consumer_code: string;
   consumer_name: string;
   consumer_phone: string;
+  number_get: string;
 };
 export type TAddCustomerReq = TCustomerForm;
 export type TAddCustomerRes = {

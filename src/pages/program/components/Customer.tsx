@@ -36,6 +36,7 @@ const CustomerSection = ({ code }: TCustomerSection) => {
     consumer_code: "",
     consumer_name: "",
     consumer_phone: "",
+    number_get: "",
   });
   const [selectedCustomer, setSelectedCustomer] =
     useState<TProgramCustomer | null>(null);
@@ -64,6 +65,7 @@ const CustomerSection = ({ code }: TCustomerSection) => {
               consumer_code: "",
               consumer_name: "",
               consumer_phone: "",
+              number_get: "",
             });
           },
           onError: (error) => {
@@ -137,6 +139,13 @@ const CustomerSection = ({ code }: TCustomerSection) => {
               value={form.consumer_code}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, consumer_code: e.target.value }))
+              }
+            />
+            <Input
+              placeholder="Số lượt quay"
+              value={form.number_get}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, number_get: e.target.value }))
               }
             />
 
