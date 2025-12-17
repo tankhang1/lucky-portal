@@ -303,9 +303,9 @@ const PrizeRow = ({
           <Input
             disabled={true}
             type="text"
-            value={formData.status === 0 ? "Hoạt động" : "Tạm ngưng"}
+            value={formData.status === 1 ? "Hoạt động" : "Tạm ngưng"}
             className={`text-right h-8 border-transparent bg-transparent shadow-none px-0 ${
-              formData.status === 0 ? "text-green-500" : "text-red-500"
+              formData.status === 1 ? "text-green-500" : "text-red-500"
             } `}
           />
         )}
@@ -344,7 +344,7 @@ const PrizeRow = ({
                 <Pencil className="h-4 w-4" />
               </ActionIcon>
               {/* Nút Xóa */}
-              {formData.status === 0 && (
+              {formData.status === 1 && (
                 <ActionIcon label="Xoá" onClick={() => onDelete(item)}>
                   <Trash2 className="h-4 w-4" />
                 </ActionIcon>
