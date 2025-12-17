@@ -102,8 +102,7 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
       return;
     }
     const extra = extraList[index];
-    const item = `${extra.number}@@${extra.repeat}@@${extra.giftCode}`;
-    if (activeProgram?.number_extra?.includes(item)) {
+    if (extraNumbers?.find((item) => item.numb === extra.number)) {
       if (confirm(`Bạn có chắc chắn muốn xoá số ${extra.number}`)) {
         removeNumberExtra(
           {
@@ -150,6 +149,7 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
     const validList = extraList.filter((item) => item.number && item.giftCode);
 
     const number_extra = validList
+      .splice(extraNumbers?.length || 0)
       .map((item) => `${item.number}@@${item.repeat}@@${item.giftCode}`)
       .join(",");
 
