@@ -45,8 +45,7 @@ const CustomerSection = ({ code }: TCustomerSection) => {
   });
   const { mutate: addCustomer, isPending: isAddingCustomer } =
     useAddProgramCustomer();
-  const { mutate: deleteCustomer, isPending: isDeletingCustomer } =
-    useDeleteProgramCustomer();
+  const { mutate: deleteCustomer } = useDeleteProgramCustomer();
 
   const onAddCustomer = () => {
     if (!form.consumer_code || !form.consumer_name || !form.consumer_phone) {

@@ -36,7 +36,6 @@ import {
   MoreHorizontal,
   Copy,
   Info,
-  Trash2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -60,8 +59,6 @@ import {
   // Assuming you have a delete/update mutation hook. If not, this is a placeholder.
 } from "@/react-query/queries/program/program";
 import { toast } from "react-toastify"; // Assuming you use toastify
-import { queryClient } from "@/main"; // Adjust path to your queryClient
-import QUERY_KEY from "@/constants/key"; // Adjust path to your query keys
 
 // ---------------------- Types ----------------------
 type HistoryRow = {
