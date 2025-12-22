@@ -689,6 +689,8 @@ export default function InfoSection({
             <JoditEditor
               value={formData.description_short}
               config={{
+                askBeforePasteHTML: false,
+                askBeforePasteFromWord: false,
                 readonly: false,
                 height: 300,
                 placeholder: "Giới thiệu ngắn gọn về chương trình...",
@@ -713,6 +715,8 @@ export default function InfoSection({
             <JoditEditor
               value={formData.description}
               config={{
+                askBeforePasteHTML: false,
+                askBeforePasteFromWord: false,
                 readonly: false,
                 height: 700,
                 placeholder: "Giới thiệu về chương trình...",
