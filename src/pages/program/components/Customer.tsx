@@ -21,12 +21,13 @@ import type {
 } from "@/react-query/services/program/program.service";
 
 import { ScrollArea } from "@radix-ui/react-scroll-area";
-import { Clock, Loader2, Trash2 } from "lucide-react";
+import { Clock, Loader2, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 import CustomerLuckyModal from "./CustomerLuckyModal";
 import { toast } from "react-toastify";
 import { queryClient } from "@/main";
 import QUERY_KEY from "@/constants/key";
+import ImportCustomerModal from "./ImportCustomerModal";
 type TCustomerSection = {
   code: string;
 };
@@ -40,6 +41,7 @@ const CustomerSection = ({ code }: TCustomerSection) => {
   });
   const [selectedCustomer, setSelectedCustomer] =
     useState<TProgramCustomer | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
   const { data: customers } = useSearchCustomer({
     campaignCode: code,
   });
@@ -156,6 +158,14 @@ const CustomerSection = ({ code }: TCustomerSection) => {
               {isAddingCustomer && <Loader2 className="h-4 w-4 animate-spin" />}
               {isAddingCustomer ? "Đang xử lí" : "Thêm"}
             </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setShowImportModal(true)}
+            >
+              <Upload className="h-4 w-4" />
+              Nhập Excel
+            </Button>
           </div>
         </div>
 
@@ -252,6 +262,11 @@ const CustomerSection = ({ code }: TCustomerSection) => {
         code={code}
         customer={selectedCustomer}
         onClose={setSelectedCustomer}
+      />
+      <ImportCustomerModal
+        isOpen={showImportModal}
+        onClose={setShowImportModal}
+        campaignCode={code}
       />
     </div>
   );
