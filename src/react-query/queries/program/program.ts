@@ -1,6 +1,4 @@
 import QUERY_KEY from "@/constants/key";
-import PATH from "@/constants/path";
-import { api } from "@/lib/axios";
 import {
   addCustomer,
   addProgramInfo,
