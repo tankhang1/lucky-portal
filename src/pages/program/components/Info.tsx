@@ -306,7 +306,13 @@ export default function InfoSection({
                         : "border-red-200 text-red-600"
                     }`}
                   >
-                    {formData.status === 1 ? "Hoạt động" : "Tạm dừng"}
+                    {formData.status === 1
+                      ? "Hoạt động"
+                      : formData.status === 0
+                      ? "Chờ kích hoạt"
+                      : formData.status === 2
+                      ? "Hết hạn"
+                      : "Tạm dừng"}
                   </button>
                 </div>
               </div>

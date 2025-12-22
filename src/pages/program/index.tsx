@@ -260,7 +260,13 @@ export default function ProgramPage() {
                               "text-xs!"
                             )}
                           >
-                            {p.status === 1 ? "Hoạt động" : "Tạm dừng"}
+                            {p.status === 1
+                              ? "Hoạt động"
+                              : p.status === 0
+                              ? "Chờ kích hoạt"
+                              : p.status === 2
+                              ? "Hết hạn"
+                              : "Tạm dừng"}
                           </Badge>
                         </div>
                       </div>
