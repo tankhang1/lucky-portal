@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAddProgramCustomer } from "@/react-query/queries/program/program";
 import { queryClient } from "@/main";
 import QUERY_KEY from "@/constants/key";
-import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle, AlertCircle, Loader2, Download } from "lucide-react";
 import { useState } from "react";
 import * as XLSX from "xlsx";
 import { toast } from "react-toastify";
@@ -165,7 +165,9 @@ export default function ImportCustomerModal({
     setStats({ total: 0, success: 0, fail: 0 });
     onClose(false);
   };
-
+  const handleDownloadTemplate = () => {
+    window.open(`${import.meta.env.VITE_API_URL}/MPS_Template.xlsx`, "_blank");
+  };
   return (
     <Dialog open={isOpen} onOpenChange={isProcessing ? undefined : resetModal}>
       <DialogContent className="sm:max-w-[500px]">
@@ -179,17 +181,26 @@ export default function ImportCustomerModal({
 
         <div className="space-y-4 py-4">
           {/* File Input */}
-          <div className="grid w-full items-center gap-1.5">
-            <Label htmlFor="excel-upload">File Excel</Label>
-            <Input
-              id="excel-upload"
-              type="file"
-              accept=".xlsx, .xls"
-              onChange={handleFileChange}
-              disabled={isProcessing}
-            />
+          <div className="flex items-end gap-2">
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="excel-upload">File Excel</Label>
+              <Input
+                id="excel-upload"
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleFileChange}
+                disabled={isProcessing}
+              />
+            </div>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleDownloadTemplate}
+            >
+              <Download className="h-4 w-4" />
+              Tải file mẫu
+            </Button>
           </div>
-
           {/* Progress Section */}
           {(isProcessing || stats.total > 0) && (
             <div className="space-y-2">
