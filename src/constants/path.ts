@@ -19,6 +19,7 @@ const PATH = {
     ADD_CUSTOMER: "/program/add-customer",
     DELETE_CUSTOMER: "/program/remove-consumer",
     LIST_EXTRA_NUMBER: "/collect/number-extra/list",
+    CUSOMER_JOIN: "/zalo/campaign/consumer/join",
   },
   MEDIA: {
     UPLOAD_IMAGE: "/upload-files/image",

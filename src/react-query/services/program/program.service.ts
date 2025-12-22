@@ -327,3 +327,30 @@ export const getListExtraNumber = async (
   const { data } = await api.get(PATH.PROGRAM.LIST_EXTRA_NUMBER, { params });
   return data;
 };
+
+export type TConsumerJoinCampaign = {
+  id: number;
+  time_start: string;
+  time_start_number: number;
+  time_end: string;
+  time_end_number: number;
+  campaign_code: string;
+  campaign_name: string;
+  image_thumbnail: string;
+  image_banner: string;
+  consumer_code: string;
+  consumer_name: string;
+  consumer_phone: string;
+  counter_get: number;
+  counter_award: number;
+};
+export type TGetConsumerJoinCampaignRes = TConsumerJoinCampaign[];
+export type TGetConsumerJoinCampaignReq = {
+  c: string;
+};
+export const getConsumerJoinCampaign = async (
+  params: TGetConsumerJoinCampaignReq
+): Promise<TGetConsumerJoinCampaignRes> => {
+  const { data } = await api.get(PATH.PROGRAM.CUSOMER_JOIN, { params });
+  return data;
+};

@@ -13,6 +13,7 @@ import {
 import {
   useAddProgramCustomer,
   useDeleteProgramCustomer,
+  useGetConsumerJoinCampaign,
   useSearchCustomer,
 } from "@/react-query/queries/program/program";
 import type {
@@ -21,13 +22,14 @@ import type {
 } from "@/react-query/services/program/program.service";
 
 import { ScrollArea } from "@radix-ui/react-scroll-area";
-import { Clock, Loader2, Trash2, Upload } from "lucide-react";
+import { Clock, Download, Loader2, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 import CustomerLuckyModal from "./CustomerLuckyModal";
 import { toast } from "react-toastify";
 import { queryClient } from "@/main";
 import QUERY_KEY from "@/constants/key";
 import ImportCustomerModal from "./ImportCustomerModal";
+import * as XLSX from "xlsx";
 type TCustomerSection = {
   code: string;
 };
@@ -48,7 +50,10 @@ const CustomerSection = ({ code }: TCustomerSection) => {
   const { mutate: addCustomer, isPending: isAddingCustomer } =
     useAddProgramCustomer();
   const { mutate: deleteCustomer } = useDeleteProgramCustomer();
-
+  const {
+    mutate: getConsumerJoinCampaign,
+    isPending: isPendingComsumerCampaign,
+  } = useGetConsumerJoinCampaign();
   const onAddCustomer = () => {
     if (!form.consumer_code || !form.consumer_name || !form.consumer_phone) {
       toast.error("Vui lòng nhập đầy đủ thông tin!");
@@ -108,6 +113,49 @@ const CustomerSection = ({ code }: TCustomerSection) => {
         }
       );
   };
+  const onExportExcel = async () => {
+    getConsumerJoinCampaign(
+      {
+        c: code,
+      },
+      {
+        onSuccess: (data) => {
+          const excelData = data.map((item) => ({
+            "Tên chương trình": item.campaign_name,
+            "Mã KH": item.consumer_code,
+            "Tên KH": item.consumer_name,
+            "DT KH": item.consumer_phone,
+            "Tổng lượt lấy": item.counter_get,
+            "Tổng lượt trúng thưởng": item.counter_award,
+          }));
+
+          const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+          const columnWidths = [
+            { wch: 40 },
+            { wch: 15 },
+            { wch: 25 },
+            { wch: 15 },
+            { wch: 15 },
+            { wch: 20 },
+          ];
+          worksheet["!cols"] = columnWidths;
+
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(
+            workbook,
+            worksheet,
+            "Danh sách tham gia"
+          );
+
+          XLSX.writeFile(workbook, "Danh_sach_khach_hang.xlsx");
+        },
+        onError: (error) => {
+          console.error("Failed to fetch data for export", error);
+        },
+      }
+    );
+  };
   return (
     <div className="space-y-6 px-4">
       <div className="flex items-center justify-between">
@@ -165,6 +213,14 @@ const CustomerSection = ({ code }: TCustomerSection) => {
             >
               <Upload className="h-4 w-4" />
               Nhập Excel
+            </Button>
+            <Button variant="outline" className="gap-2" onClick={onExportExcel}>
+              {isPendingComsumerCampaign ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Xuất Excel
             </Button>
           </div>
         </div>

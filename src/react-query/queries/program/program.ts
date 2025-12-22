@@ -8,6 +8,7 @@ import {
   deactiveProgramPrize,
   deleteCustomer,
   deleteProgramInfo,
+  getConsumerJoinCampaign,
   getListExtraNumber,
   getProgramDetailNumber,
   getProgramLuckyHistory,
@@ -26,6 +27,8 @@ import {
   type TDeleteCustomerRes,
   type TDeleteProgramInfoReq,
   type TDeleteProgramInfoRes,
+  type TGetConsumerJoinCampaignReq,
+  type TGetConsumerJoinCampaignRes,
   type TGetExtraNumberReq,
   type TGetExtraNumberRes,
   type TGetProgramDetailNumberReq,
@@ -178,5 +181,14 @@ export const useAddProgramCustomer = () => {
 export const useDeleteProgramCustomer = () => {
   return useMutation<TDeleteCustomerRes, AxiosError<null>, TDeleteCustomerReq>({
     mutationFn: deleteCustomer,
+  });
+};
+export const useGetConsumerJoinCampaign = () => {
+  return useMutation<
+    TGetConsumerJoinCampaignRes,
+    AxiosError<null>,
+    TGetConsumerJoinCampaignReq
+  >({
+    mutationFn: getConsumerJoinCampaign,
   });
 };
