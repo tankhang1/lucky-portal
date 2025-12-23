@@ -18,7 +18,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 403) {
+      localStorage.clear();
+      location.replace("/");
       // Logic to redirect to login
     }
     return Promise.reject(error);
