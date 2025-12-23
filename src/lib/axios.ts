@@ -1,5 +1,6 @@
 // src/lib/axios.ts
 import axios from "axios";
+import { toast } from "react-toastify";
 
 // Create the instance
 export const api = axios.create({
@@ -21,6 +22,7 @@ api.interceptors.response.use(
     if (error.response?.status === 403) {
       localStorage.clear();
       location.replace("/");
+      alert("Đã hết phiên đăng nhập, vui lòng đăng nhập lại");
       // Logic to redirect to login
     }
     return Promise.reject(error);
