@@ -158,7 +158,7 @@ export function Stepper({
           Bước {current + 1}/{steps.length}
         </div>
         <Button disabled={current >= steps.length - 1} onClick={next}>
-          Tiếp
+          {current >= steps.length - 1 ? "Đã hoàn thành" : "Tiếp"}
         </Button>
       </div>
     </div>
