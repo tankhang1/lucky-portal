@@ -42,12 +42,14 @@ import { queryClient } from "@/main";
 import QUERY_KEY from "@/constants/key";
 import type { TSearchProgramRes } from "@/react-query/services/program/program.service";
 import LuckyExtra from "./components/LuckyExtra";
+import { useCheckTokenExpire } from "@/react-query/queries/auth/auth";
 
 export default function ProgramPage() {
   const { data: programs } = useSearchProgram({
     k: "",
   });
   const { mutate: deleteProgramInfo } = useDeleteProgramInfo();
+  const { mutate: checkToken } = useCheckTokenExpire();
   const [search, setSearch] = useState("");
   const [listProgram, setListProgram] = useState<TSearchProgramRes>([]);
   const [activeId, setActiveId] = useState<number>(-1);
@@ -152,6 +154,29 @@ export default function ProgramPage() {
       setListProgram(programs);
     }
   }, [programs]);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      checkToken(
+        {
+          token: token,
+        },
+        {
+          onSuccess: (isExpire) => {
+            if (isExpire) {
+              localStorage.clear();
+              location.replace("/");
+              alert("Đã hết phiên đăng nhập, vui lòng đăng nhập lại");
+            }
+          },
+        }
+      );
+    } else {
+      localStorage.clear();
+      location.replace("/");
+      alert("Đã hết phiên đăng nhập, vui lòng đăng nhập lại");
+    }
+  }, [location.pathname]);
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">

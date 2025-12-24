@@ -59,6 +59,7 @@ import {
   // Assuming you have a delete/update mutation hook. If not, this is a placeholder.
 } from "@/react-query/queries/program/program";
 import { toast } from "react-toastify"; // Assuming you use toastify
+import { useCheckTokenExpire } from "@/react-query/queries/auth/auth";
 
 // ---------------------- Types ----------------------
 type HistoryRow = {
@@ -124,6 +125,7 @@ type SortDir = "asc" | "desc";
 type TabKey = "participants" | "winners";
 
 const HistoryPage: React.FC = () => {
+  const { mutate: checkToken } = useCheckTokenExpire();
   // data
   const [rows, setRows] = useState<HistoryRow[]>([]);
 
@@ -327,7 +329,29 @@ const HistoryPage: React.FC = () => {
       }))
     );
   }, [histories]);
-
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      checkToken(
+        {
+          token: token,
+        },
+        {
+          onSuccess: (isExpire) => {
+            if (isExpire) {
+              localStorage.clear();
+              location.replace("/");
+              alert("Đã hết phiên đăng nhập, vui lòng đăng nhập lại");
+            }
+          },
+        }
+      );
+    } else {
+      localStorage.clear();
+      location.replace("/");
+      alert("Đã hết phiên đăng nhập, vui lòng đăng nhập lại");
+    }
+  }, [location.pathname]);
   return (
     <div className="p-6 space-y-6">
       <Card>
