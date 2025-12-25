@@ -40,6 +40,7 @@ import {
   useUploadPdf,
   useUploadThumbnail,
 } from "@/react-query/queries/media/media";
+import { statusConfig } from "..";
 
 export default function InfoSection({
   activeProgram,
@@ -274,6 +275,7 @@ export default function InfoSection({
                     Mã chương trình
                   </div>
                   <Input
+                    disabled={activeProgram?.id !== -1}
                     value={formData.code || ""}
                     onChange={(e) => updateField("code", e.target.value)}
                     placeholder="Mã chương trình"
@@ -295,25 +297,31 @@ export default function InfoSection({
                   <div className="text-xs text-muted-foreground">
                     Trạng thái
                   </div>
-                  <button
+
+                  <Badge
                     onClick={() =>
-                      updateField("status", formData.status === 1 ? 0 : 1)
+                      updateField(
+                        "status",
+                        formData.status === -1
+                          ? 0
+                          : formData.status === 0
+                          ? 1
+                          : formData.status === 1
+                          ? 2
+                          : formData.status === 2
+                          ? 3
+                          : -1
+                      )
                     }
-                    disabled
-                    className={`shrink-0 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] cursor-pointer transition bg-white! ${
-                      formData.status === 1
-                        ? "border-emerald-200 text-emerald-700 bg-emerald-50"
-                        : "border-red-200 text-red-600"
-                    }`}
+                    variant={"outline"}
+                    className={cn(
+                      "px-2.5 py-0.5 text-xs font-medium transition-colors cursor-pointer", // Base styles
+                      statusConfig[formData.status].className
+                    )}
                   >
-                    {formData.status === 1
-                      ? "Hoạt động"
-                      : formData.status === 0
-                      ? "Chờ kích hoạt"
-                      : formData.status === 2
-                      ? "Hết hạn"
-                      : "Tạm dừng"}
-                  </button>
+                    {statusConfig[formData.status].icon}
+                    {statusConfig[formData.status].label}
+                  </Badge>
                 </div>
               </div>
             </div>

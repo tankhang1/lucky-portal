@@ -33,12 +33,14 @@ import {
   Upload,
   Pencil, // Icon Sửa
   Check, // Icon Lưu
-  X, // Icon Hủy
+  X,
+  Loader2, // Icon Hủy
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { queryClient } from "@/main";
 import QUERY_KEY from "@/constants/key";
 import { useUploadGift } from "@/react-query/queries/media/media";
+import { randomCode } from "@/hooks/random-code";
 
 // Mở rộng type để quản lý trạng thái local
 type TPrizeState = TProgramPrizeReq & {
@@ -151,17 +153,21 @@ const PrizeRow = ({
       <TableCell className="text-center">{index + 1}</TableCell>
       {/* Gift Code */}
       <TableCell className="text-left">
-        <Input
-          disabled={!isEditing || (!item.isNew && !!item.gift_code)} // Code thường không cho sửa khi đã tạo
-          value={formData.gift_code}
-          onChange={(e) => handleChange("gift_code", e.target.value)}
-          placeholder="Mã quà..."
-          className={`h-8 font-mono text-xs${
-            !isEditing
-              ? "border-transparent bg-transparent shadow-none px-0"
-              : ""
-          }`}
-        />
+        {item.isNew ? (
+          ""
+        ) : (
+          <Input
+            disabled={!isEditing || (!item.isNew && !!item.gift_code)} // Code thường không cho sửa khi đã tạo
+            value={formData.gift_code}
+            onChange={(e) => handleChange("gift_code", e.target.value)}
+            placeholder="Mã quà..."
+            className={`h-8 font-mono text-xs${
+              !isEditing
+                ? "border-transparent bg-transparent shadow-none px-0"
+                : ""
+            }`}
+          />
+        )}
       </TableCell>
       {/* Gift Name */}
       <TableCell>
@@ -289,7 +295,7 @@ const PrizeRow = ({
         <Input
           disabled={!isEditing}
           type="checkbox"
-          value={formData.type_extra}
+          checked={formData.type_extra ? true : false}
           onChange={(e) => handleChange("type_extra", Number(e.target.checked))}
           className={`text-right h-8 ${
             !isEditing
@@ -359,7 +365,11 @@ const PrizeRow = ({
 
 // --- Main Container ---
 const PrizeSection = ({ code }: { code: string }) => {
-  const { data: gifts, isLoading } = useSearchGift({
+  const { data: gift_extras, isLoading: isLoadingGiftExtra } = useSearchGift({
+    campaignCode: code,
+    type: "1",
+  });
+  const { data: gifts, isLoading: isLoadingGift } = useSearchGift({
     campaignCode: code,
     type: "0",
   });
@@ -367,8 +377,8 @@ const PrizeSection = ({ code }: { code: string }) => {
   const [items, setItems] = useState<TPrizeState[]>([]);
 
   useEffect(() => {
-    if (gifts) {
-      const mapped = gifts.map((g: any) => ({
+    if (gifts && gift_extras) {
+      const mapped = [...gifts, ...gift_extras].map((g: any) => ({
         campaign_code: code,
         award_name: g.award_name,
         gift_code: g.gift_code,
@@ -376,15 +386,15 @@ const PrizeSection = ({ code }: { code: string }) => {
         gift_image: g.gift_image,
         gift_image_thumb: g.gift_image_thumb || g.gift_image,
         limits: g.limits || g.counter || 0,
-        type_extra: g.type_extra || 0,
+        type_extra: g.type_extra,
         id: g.id,
         price: g.price || 0,
         status: g.status || 0,
       }));
       setItems(mapped);
     }
-  }, [gifts, code]);
-
+  }, [gifts, gift_extras, code]);
+  console.log(gift_extras);
   const { mutateAsync: addPrize } = useAddProgramPrize();
   const { mutateAsync: updatePrize } = useUpdateProgramPrize();
   const { mutate: deactivePrize } = useDeactiveProgramPrize();
@@ -394,12 +404,13 @@ const PrizeSection = ({ code }: { code: string }) => {
     const newItem: TPrizeState = {
       campaign_code: code,
       award_name: "",
-      gift_code: "",
+      gift_code: randomCode(8),
       gift_name: "",
       gift_image: "",
       gift_image_thumb: "",
       limits: 1,
       type_extra: 0,
+      status: 1,
       isNew: true, // Cờ đánh dấu để Row tự bật chế độ Edit
     };
     setItems((prev) => [newItem, ...prev]); // Thêm lên đầu danh sách cho dễ thấy
@@ -532,7 +543,20 @@ const PrizeSection = ({ code }: { code: string }) => {
                 onCancelNew={() => handleCancelNewRow(i)}
               />
             ))}
-            {!isLoading && items.length === 0 && (
+            {(isLoadingGift || isLoadingGiftExtra) && (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  <div className="flex items-center gap-2 justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Đang xử lí...
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+            {!isLoadingGift && !isLoadingGiftExtra && items.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={7}

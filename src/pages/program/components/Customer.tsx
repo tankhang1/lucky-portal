@@ -34,6 +34,7 @@ type TCustomerSection = {
   code: string;
 };
 const CustomerSection = ({ code }: TCustomerSection) => {
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [form, setForm] = useState<TCustomerForm>({
     campaign_code: code,
     consumer_code: "",
@@ -44,7 +45,7 @@ const CustomerSection = ({ code }: TCustomerSection) => {
   const [selectedCustomer, setSelectedCustomer] =
     useState<TProgramCustomer | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
-  const { data: customers } = useSearchCustomer({
+  const { data: customers, isLoading: isLoadingCustomers } = useSearchCustomer({
     campaignCode: code,
   });
   const { mutate: addCustomer, isPending: isAddingCustomer } =
@@ -156,6 +157,59 @@ const CustomerSection = ({ code }: TCustomerSection) => {
       }
     );
   };
+  const onSelectAll = (checked: boolean) => {
+    if (checked && customers) {
+      setSelectedIds(customers.map((c) => c.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+  const onSelectOne = (checked: boolean, id: number) => {
+    if (checked) {
+      setSelectedIds((prev) => [...prev, id]);
+    } else {
+      setSelectedIds((prev) => prev.filter((item) => item !== id));
+    }
+  };
+  const onDeleteMultiple = () => {
+    if (selectedIds.length === 0) return;
+
+    const isConfirmed = window.confirm(
+      `Bạn có chắc chắn muốn xoá ${selectedIds.length} khách hàng đã chọn? Hành động này không thể hoàn tác.`
+    );
+
+    if (isConfirmed && customers) {
+      const phonesToDelete = customers
+        .filter((c) => selectedIds.includes(c.id))
+        .map((c) => c.consumer_phone);
+
+      let successCount = 0;
+      phonesToDelete.forEach((phone) => {
+        deleteCustomer(
+          {
+            campaign_code: code,
+            consumer_phone: phone,
+          },
+          {
+            onSuccess: () => {
+              successCount++;
+            },
+            onError: (error) => {
+              console.error(`Lỗi khi xoá ${phone}`, error);
+            },
+          }
+        );
+      });
+
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: [QUERY_KEY.PROGRAM.CUSTOMER_LIST],
+        });
+        toast.success(`Đã gửi yêu cầu xoá ${selectedIds.length} khách hàng.`);
+        setSelectedIds([]);
+      }, 500);
+    }
+  };
   return (
     <div className="space-y-6 px-4">
       <div className="flex items-center justify-between">
@@ -206,31 +260,55 @@ const CustomerSection = ({ code }: TCustomerSection) => {
               {isAddingCustomer && <Loader2 className="h-4 w-4 animate-spin" />}
               {isAddingCustomer ? "Đang xử lí" : "Thêm"}
             </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => setShowImportModal(true)}
-            >
-              <Upload className="h-4 w-4" />
-              Nhập Excel
-            </Button>
-            <Button variant="outline" className="gap-2" onClick={onExportExcel}>
-              {isPendingComsumerCampaign ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              Xuất Excel
-            </Button>
           </div>
         </div>
-
+        <div className="flex justify-end items-center gap-2">
+          {selectedIds.length > 0 && (
+            <Button
+              variant="destructive"
+              className="gap-2"
+              onClick={onDeleteMultiple}
+            >
+              <Trash2 className="h-4 w-4" />
+              Xoá ({selectedIds.length})
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowImportModal(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Nhập Excel
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={onExportExcel}>
+            {isPendingComsumerCampaign ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Xuất Excel
+          </Button>
+        </div>
         {/* Bảng với drag handle + history dialog */}
 
         <ScrollArea className="h-[360px] rounded-md border overflow-y-auto">
           <Table className="text-sm">
             <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <TableRow className="[&>th]:h-10 [&>th]:px-3">
+                <TableHead className="w-10 text-center">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    checked={
+                      customers?.length
+                        ? selectedIds.length === customers.length &&
+                          customers.length > 0
+                        : false
+                    }
+                    onChange={(e) => onSelectAll(e.target.checked)}
+                  />
+                </TableHead>
                 <TableHead className="w-10 text-center">#</TableHead>
                 <TableHead className="min-w-[180px]">Tên khách hàng</TableHead>
                 <TableHead className="min-w-[160px]">Số điện thoại</TableHead>
@@ -247,6 +325,16 @@ const CustomerSection = ({ code }: TCustomerSection) => {
             <TableBody className="[&>tr:nth-child(even)]:bg-muted/30">
               {customers?.map((c, i) => (
                 <SortableRow key={c.id} id={String(c.id)}>
+                  <TableCell className="text-center px-3 py-2">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      checked={selectedIds.includes(c.id)}
+                      onChange={(e) => onSelectOne(e.target.checked, c.id)}
+                      // Ngăn chặn sự kiện click lan ra row (nếu có drag/drop)
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </TableCell>
                   {/* Index */}
                   <TableCell className="text-center px-3 py-2">
                     {i + 1}
@@ -297,8 +385,20 @@ const CustomerSection = ({ code }: TCustomerSection) => {
                   </TableCell>
                 </SortableRow>
               ))}
-
-              {customers?.length === 0 && (
+              {isLoadingCustomers && (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    <div className="flex items-center gap-2 justify-center">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Đang xử lí...
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoadingCustomers && customers?.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={7}

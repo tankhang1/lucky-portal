@@ -54,9 +54,10 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
     type: "1",
   });
 
-  const { data: extraNumbers } = useGetListExtraNumber({
-    campaignCode: activeProgram?.code,
-  });
+  const { data: extraNumbers, isLoading: isLoadingExtraNumbers } =
+    useGetListExtraNumber({
+      campaignCode: activeProgram?.code,
+    });
   const { mutate: updateNumberExtra, isPending: isUpdateNumberExtra } =
     useUpdateNumberExtra();
   const { mutate: removeNumberExtra } = useRemoveNumberExtra();
@@ -290,8 +291,20 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
                     </TableRow>
                   );
                 })}
-
-                {extraList.length === 0 && (
+                {isLoadingExtraNumbers && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      <div className="flex items-center gap-2 justify-center">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Đang xử lí...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!isLoadingExtraNumbers && extraList.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={4}

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Check } from "lucide-react";
+import type { TProgram } from "@/react-query/services/program/program.service";
 
 type Step = {
   id: string;
@@ -20,6 +21,7 @@ type StepperProps = {
   orientation?: Orientation;
   className?: string;
   children?: React.ReactNode;
+  activeProgram: TProgram;
 };
 
 export function Stepper({
@@ -30,6 +32,7 @@ export function Stepper({
   orientation = "horizontal",
   children,
   className,
+  activeProgram,
 }: StepperProps) {
   const [internal, setInternal] = React.useState(defaultValue);
   const current = value ?? internal;
@@ -150,17 +153,24 @@ export function Stepper({
         </div>
       )}
       {children}
-      <div className="mt-4 flex items-center justify-between px-4">
-        <Button variant="outline" disabled={current <= 0} onClick={prev}>
-          Trước
-        </Button>
-        <div className="text-xs text-muted-foreground">
-          Bước {current + 1}/{steps.length}
+      {activeProgram?.id !== -1 && (
+        <div className="mt-4 flex items-center justify-between px-4">
+          {current <= 0 ? (
+            <div />
+          ) : (
+            <Button variant="outline" disabled={current <= 0} onClick={prev}>
+              Trước
+            </Button>
+          )}
+
+          <div className="text-xs text-muted-foreground">
+            Bước {current + 1}/{steps.length}
+          </div>
+          <Button disabled={current >= steps.length - 1} onClick={next}>
+            {current >= steps.length - 1 ? "Đã hoàn thành" : "Tiếp"}
+          </Button>
         </div>
-        <Button disabled={current >= steps.length - 1} onClick={next}>
-          {current >= steps.length - 1 ? "Đã hoàn thành" : "Tiếp"}
-        </Button>
-      </div>
+      )}
     </div>
   );
 }

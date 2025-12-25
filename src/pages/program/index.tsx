@@ -22,8 +22,13 @@ import {
   Image as ImageIcon,
   Search,
   Filter,
-  ShieldBan,
   X,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Ban,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import Stepper from "@/components/stepper";
@@ -43,9 +48,39 @@ import QUERY_KEY from "@/constants/key";
 import type { TSearchProgramRes } from "@/react-query/services/program/program.service";
 import LuckyExtra from "./components/LuckyExtra";
 import { useCheckTokenExpire } from "@/react-query/queries/auth/auth";
-
+export const statusConfig: Record<
+  number,
+  { label: string; className: string; icon: React.ReactNode }
+> = {
+  "1": {
+    label: "Hoạt động",
+    className:
+      "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+    icon: <CheckCircle2 className="w-3 h-3 mr-1" />, // Optional: thêm icon cho đẹp
+  },
+  "0": {
+    label: "Chờ kích hoạt",
+    className: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
+    icon: <Clock className="w-3 h-3 mr-1" />,
+  },
+  "-1": {
+    label: "Bản nháp",
+    className: "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100",
+    icon: <FileText className="w-3 h-3 mr-1" />,
+  },
+  "2": {
+    label: "Đã huỷ",
+    className: "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100",
+    icon: <Ban className="w-3 h-3 mr-1" />,
+  },
+  "3": {
+    label: "Hết hạn",
+    className: "border-gray-200 bg-gray-100 text-gray-500",
+    icon: <AlertCircle className="w-3 h-3 mr-1" />,
+  },
+};
 export default function ProgramPage() {
-  const { data: programs } = useSearchProgram({
+  const { data: programs, isLoading: isLoadingPrograms } = useSearchProgram({
     k: "",
   });
   const { mutate: deleteProgramInfo } = useDeleteProgramInfo();
@@ -85,7 +120,7 @@ export default function ProgramPage() {
         time_active: undefined,
         time_active_number: 0,
 
-        status: 0,
+        status: -1,
         type: 1,
 
         image_thumbnail: "",
@@ -229,7 +264,7 @@ export default function ProgramPage() {
                     }`}
                     onClick={() => setStatusFilter("enabled")}
                   >
-                    Đang bật <Badge>{stats.enabled}</Badge>
+                    Đang hoạt động <Badge>{stats.enabled}</Badge>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className={`justify-between ${
@@ -237,7 +272,7 @@ export default function ProgramPage() {
                     }`}
                     onClick={() => setStatusFilter("disabled")}
                   >
-                    Đang tắt <Badge variant="outline">{stats.disabled}</Badge>
+                    Khác <Badge variant="outline">{stats.disabled}</Badge>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -279,43 +314,43 @@ export default function ProgramPage() {
                           <Badge
                             variant={"outline"}
                             className={cn(
-                              p.status === 1
-                                ? "border-emerald-200 text-emerald-700 bg-emerald-50"
-                                : "border-red-200 text-red-600",
-                              "text-xs!"
+                              "px-2.5 py-0.5 text-xs font-medium transition-colors", // Base styles
+                              statusConfig[p.status].className
                             )}
                           >
-                            {p.status === 1
-                              ? "Hoạt động"
-                              : p.status === 0
-                              ? "Chờ kích hoạt"
-                              : p.status === 2
-                              ? "Hết hạn"
-                              : "Tạm dừng"}
+                            {statusConfig[p.status].icon}
+                            {statusConfig[p.status].label}
                           </Badge>
                         </div>
                       </div>
-                      {p.status === 1 && (
-                        <ActionIcon
-                          onClick={() => onDeleteProgramInfo(p.code)}
-                          label={"Tạm dừng"}
-                        >
-                          <ShieldBan className="h-4 w-4" color="red" />
-                        </ActionIcon>
-                      )}
-                      {p.id === -1 && (
+
+                      {p.id === -1 ? (
                         <ActionIcon
                           onClick={() => setListProgram(listProgram.slice(1))}
                           label={"Xoá"}
                         >
                           <X className="h-4 w-4" color="red" />
                         </ActionIcon>
+                      ) : (
+                        p.status < 2 && (
+                          <ActionIcon
+                            onClick={() => onDeleteProgramInfo(p.code)}
+                            label={"Huỷ"}
+                          >
+                            <Ban className="h-4 w-4" color="red" />
+                          </ActionIcon>
+                        )
                       )}
                     </div>
                   );
                 })}
-
-                {filteredPrograms?.length === 0 && (
+                {isLoadingPrograms && (
+                  <div className="flex items-center gap-2 justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Đang xử lí...
+                  </div>
+                )}
+                {!isLoadingPrograms && filteredPrograms?.length === 0 && (
                   <div className="text-center text-sm text-muted-foreground py-10">
                     Không tìm thấy chương trình
                   </div>
@@ -343,11 +378,12 @@ export default function ProgramPage() {
             }}
             defaultValue={step}
             value={step}
+            activeProgram={activeProgram}
           >
             {step === 0 && activeProgram && (
               <InfoSection activeProgram={activeProgram} />
             )}
-            {step === 1 && <PrizeSection code={activeProgram.code} />}
+            {step === 1 && <PrizeSection code={activeProgram?.code} />}
 
             {step === 2 && <LuckyExtra activeProgram={activeProgram} />}
             {step === 3 && <CustomerSection code={activeProgram?.code} />}
