@@ -1,5 +1,6 @@
 import QUERY_KEY from "@/constants/key";
 import {
+  activeProgramInfo,
   addCustomer,
   addProgramInfo,
   addProgramPrize,
@@ -129,6 +130,15 @@ export const useDeleteProgramInfo = () => {
     TDeleteProgramInfoReq
   >({
     mutationFn: deleteProgramInfo,
+  });
+};
+export const useActiveProgramInfo = () => {
+  return useMutation<
+    TDeleteProgramInfoRes,
+    AxiosError<null>,
+    TDeleteProgramInfoReq
+  >({
+    mutationFn: activeProgramInfo,
   });
 };
 export const useUpdateNumberExtra = () => {

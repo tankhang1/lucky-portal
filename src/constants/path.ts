@@ -12,6 +12,7 @@ const PATH = {
     UPDATE_INFO: "/program/update",
     ADD_INFO: "/program/add",
     SAVE_DRAFT_INFO: "/program/save-draft",
+    ACTIVE_INFO_STATUS: "/program/update-active",
     DELETE_INFO: "/program/deactive",
     UPDATE_NUMBER_EXTRA: "/program/add-number-extra",
     REMOVE_NUMBER_EXTRA: "/program/remove-number-extra",

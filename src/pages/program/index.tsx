@@ -29,12 +29,14 @@ import {
   Ban,
   AlertCircle,
   Loader2,
+  Check,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import Stepper from "@/components/stepper";
 import { cn } from "@/lib/utils";
 import InfoSection from "./components/Info";
 import {
+  useActiveProgramInfo,
   useDeleteProgramInfo,
   useSearchProgram,
 } from "@/react-query/queries/program/program";
@@ -84,6 +86,7 @@ export default function ProgramPage() {
     k: "",
   });
   const { mutate: deleteProgramInfo } = useDeleteProgramInfo();
+  const { mutate: activeProgramInfo } = useActiveProgramInfo();
   const { mutate: checkToken } = useCheckTokenExpire();
   const [search, setSearch] = useState("");
   const [listProgram, setListProgram] = useState<TSearchProgramRes>([]);
@@ -142,6 +145,29 @@ export default function ProgramPage() {
   const onDeleteProgramInfo = (code: string) => {
     if (confirm(`Bạn có chắc chắn muốn tạm dừng chương trình ${code}`)) {
       deleteProgramInfo(
+        {
+          code,
+        },
+        {
+          onSuccess: (data) => {
+            toast.success(data.message);
+          },
+          onError: (error) => {
+            //@ts-expect-error no check
+            toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+          },
+          onSettled: () => {
+            queryClient.invalidateQueries({
+              queryKey: [QUERY_KEY.PROGRAM.LIST],
+            });
+          },
+        }
+      );
+    }
+  };
+  const onActiveProgramInfo = (code: string) => {
+    if (confirm(`Bạn có chắc chắn muốn kích hoạt chương trình ${code}`)) {
+      activeProgramInfo(
         {
           code,
         },
@@ -324,23 +350,33 @@ export default function ProgramPage() {
                         </div>
                       </div>
 
-                      {p.id === -1 ? (
-                        <ActionIcon
-                          onClick={() => setListProgram(listProgram.slice(1))}
-                          label={"Xoá"}
-                        >
-                          <X className="h-4 w-4" color="red" />
-                        </ActionIcon>
-                      ) : (
-                        p.status < 2 && (
+                      <div className="flex items-center gap-2">
+                        {p.id === -1 ? (
                           <ActionIcon
-                            onClick={() => onDeleteProgramInfo(p.code)}
-                            label={"Huỷ"}
+                            onClick={() => setListProgram(listProgram.slice(1))}
+                            label={"Xoá"}
                           >
-                            <Ban className="h-4 w-4" color="red" />
+                            <X className="h-4 w-4" color="red" />
                           </ActionIcon>
-                        )
-                      )}
+                        ) : (
+                          p.status < 2 && (
+                            <ActionIcon
+                              onClick={() => onDeleteProgramInfo(p.code)}
+                              label={"Huỷ"}
+                            >
+                              <Ban className="h-4 w-4" color="red" />
+                            </ActionIcon>
+                          )
+                        )}
+                        {p.status <= 0 && p.id !== -1 && (
+                          <ActionIcon
+                            onClick={() => onActiveProgramInfo(p.code)}
+                            label={"Kích hoạt"}
+                          >
+                            <Check className="h-4 w-4" color="green" />
+                          </ActionIcon>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

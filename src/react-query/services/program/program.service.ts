@@ -217,6 +217,14 @@ export const deleteProgramInfo = async (
   const { data } = await api.post(PATH.PROGRAM.DELETE_INFO, body);
   return data;
 };
+export type TActiveProgramInfoReq = TDeleteProgramInfoReq;
+export type TActiveProgramInfoRes = TDeleteProgramInfoRes;
+export const activeProgramInfo = async (
+  body: TActiveProgramInfoReq
+): Promise<TActiveProgramInfoRes> => {
+  const { data } = await api.post(PATH.PROGRAM.ACTIVE_INFO_STATUS, body);
+  return data;
+};
 export type TUpdateExtraNumberReq = {
   code: string;
   number_extra: string;

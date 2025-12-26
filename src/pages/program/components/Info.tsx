@@ -186,12 +186,10 @@ export default function InfoSection({
     const payload = {
       code: formData.code,
       description: formData.description,
-      time_start_number: +dayjs(new Date(formData.time_start || "")).format(
-        "YYYYMMDDHHmm"
-      ),
-      time_end_number: +dayjs(new Date(formData.time_end || "")).format(
-        "YYYYMMDDHHmm"
-      ),
+      time_start_number:
+        +dayjs(new Date(formData.time_start || "")).format("YYYYMMDD") * 10000,
+      time_end_number:
+        +dayjs(new Date(formData.time_end || "")).format("YYYYMMDD") * 10000,
       audio_link: formData.audio_link || "",
       description_short: formData.description_short,
       image_banner: formData.image_banner,
@@ -236,12 +234,10 @@ export default function InfoSection({
     const payload = {
       code: formData.code,
       description: formData.description,
-      time_start_number: +dayjs(new Date(formData.time_start || "")).format(
-        "YYYYMMDDHHmm"
-      ),
-      time_end_number: +dayjs(new Date(formData.time_end || "")).format(
-        "YYYYMMDDHHmm"
-      ),
+      time_start_number:
+        +dayjs(new Date(formData.time_start || "")).format("YYYYMMDD") * 10000,
+      time_end_number:
+        +dayjs(new Date(formData.time_end || "")).format("YYYYMMDD") * 10000,
       audio_link: formData.audio_link || "",
       description_short: formData.description_short,
       image_banner: formData.image_banner,
@@ -431,8 +427,8 @@ export default function InfoSection({
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">Bắt đầu</div>
                 <Input
-                  type="datetime-local"
-                  value={formData.time_start || ""}
+                  type="date"
+                  value={dayjs(formData.time_start || "").format("YYYY-MM-DD")}
                   onChange={(e) => updateField("time_start", e.target.value)}
                   className="!text-xs"
                 />
@@ -440,8 +436,8 @@ export default function InfoSection({
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">Kết thúc</div>
                 <Input
-                  type="datetime-local"
-                  value={formData.time_end || ""}
+                  type="date"
+                  value={dayjs(formData.time_end || "").format("YYYY-MM-DD")}
                   onChange={(e) => updateField("time_end", e.target.value)}
                   min={formData.time_start}
                   className="!text-xs"
