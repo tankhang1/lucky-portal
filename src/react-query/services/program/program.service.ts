@@ -197,7 +197,12 @@ export const addProgramInfo = async (
   const { data } = await api.post(PATH.PROGRAM.ADD_INFO, body);
   return data;
 };
-
+export const saveDraftProgramInfo = async (
+  body: TAddProgramInfoReq
+): Promise<TAddProgramInfoRes> => {
+  const { data } = await api.post(PATH.PROGRAM.SAVE_DRAFT_INFO, body);
+  return data;
+};
 export type TDeleteProgramInfoReq = {
   code: string;
 };

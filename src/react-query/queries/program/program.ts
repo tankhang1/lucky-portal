@@ -11,6 +11,7 @@ import {
   getProgramDetailNumber,
   getProgramLuckyHistory,
   removeExtraNumber,
+  saveDraftProgramInfo,
   searchCustomer,
   searchGift,
   searchProgram,
@@ -114,6 +115,11 @@ export const useUpdateProgramInfo = () => {
 export const useAddProgramInfo = () => {
   return useMutation<TAddProgramInfoRes, AxiosError<null>, TAddProgramInfoReq>({
     mutationFn: addProgramInfo,
+  });
+};
+export const useSaveDraftProgramInfo = () => {
+  return useMutation<TAddProgramInfoRes, AxiosError<null>, TAddProgramInfoReq>({
+    mutationFn: saveDraftProgramInfo,
   });
 };
 export const useDeleteProgramInfo = () => {

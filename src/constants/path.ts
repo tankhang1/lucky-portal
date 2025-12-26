@@ -11,6 +11,7 @@ const PATH = {
     LUCKY_HISTORY: "/zalo/campaign/lucky/history",
     UPDATE_INFO: "/program/update",
     ADD_INFO: "/program/add",
+    SAVE_DRAFT_INFO: "/program/save-draft",
     DELETE_INFO: "/program/deactive",
     UPDATE_NUMBER_EXTRA: "/program/add-number-extra",
     REMOVE_NUMBER_EXTRA: "/program/remove-number-extra",

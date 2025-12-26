@@ -27,6 +27,7 @@ import { ImageField } from "@/components/image-field";
 import { IconBrandMiniprogram } from "@tabler/icons-react";
 import {
   useAddProgramInfo,
+  useSaveDraftProgramInfo,
   useUpdateProgramInfo,
 } from "@/react-query/queries/program/program";
 import { toast } from "react-toastify";
@@ -51,6 +52,8 @@ export default function InfoSection({
     useUpdateProgramInfo();
   const { mutate: addProgram, isPending: isAddingProgram } =
     useAddProgramInfo();
+  const { mutate: saveDraftProgram, isPending: isSavingDraftProgram } =
+    useSaveDraftProgramInfo();
   const { mutate: uploadImage, isPending: isUploadingImage } = useUploadImage();
   const { mutate: uploadThumbnail, isPending: isUploadingThumbnail } =
     useUploadThumbnail();
@@ -229,7 +232,46 @@ export default function InfoSection({
     }
     console.log("Submitting form:", payload);
   };
-
+  const handleSaveDraft = () => {
+    const payload = {
+      code: formData.code,
+      description: formData.description,
+      time_start_number: +dayjs(new Date(formData.time_start || "")).format(
+        "YYYYMMDDHHmm"
+      ),
+      time_end_number: +dayjs(new Date(formData.time_end || "")).format(
+        "YYYYMMDDHHmm"
+      ),
+      audio_link: formData.audio_link || "",
+      description_short: formData.description_short,
+      image_banner: formData.image_banner,
+      image_thumbnail: formData.image_thumbnail,
+      name: formData.name,
+      pdf_link: formData.pdf_link || "",
+      // NEW LOGIC ADDED HERE
+      type: formData.type || 0,
+      number_start: Number(formData.number_start || 0),
+      number_end: Number(formData.number_end || 0),
+      number_loop: Number(formData.number_loop || 0),
+    };
+    const mutationOptions = {
+      onSuccess: (data: any) => {
+        toast.success(data.message);
+      },
+      onError: (error: any) => {
+        toast.error(error.response?.data?.message || "Đã có lỗi xảy ra!");
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({
+          queryKey: [QUERY_KEY.PROGRAM.LIST],
+        });
+      },
+    };
+    const isConfirmed = window.confirm(
+      "Bạn có chắc chắn muốn lưu nháp chương trình này không?"
+    );
+    if (isConfirmed) saveDraftProgram(payload, mutationOptions);
+  };
   return (
     <div className="space-y-3">
       <CardHeader>
@@ -249,21 +291,36 @@ export default function InfoSection({
               ) : (
                 <SaveIcon className="mr-2" />
               )}
-              {isUpdatingProgram ? "Đang xử lí..." : "Lưu"}
+              {isUpdatingProgram ? "Đang xử lí..." : "Cập nhật"}
             </Button>
           ) : (
-            <Button
-              className="font-medium!"
-              onClick={handleUpdate}
-              disabled={isAddingProgram}
-            >
-              {isAddingProgram ? (
-                <Loader className="animate-spin mr-2" />
-              ) : (
-                <SaveIcon className="mr-2" />
-              )}
-              {isAddingProgram ? "Đang xử lí..." : "Thêm mới"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                className="font-medium!"
+                onClick={handleSaveDraft}
+                variant={"outline"}
+                disabled={isSavingDraftProgram}
+              >
+                {isSavingDraftProgram ? (
+                  <Loader className="animate-spin mr-2" />
+                ) : (
+                  <SaveIcon className="mr-2" />
+                )}
+                {isSavingDraftProgram ? "Đang xử lí..." : "Lưu nháp"}
+              </Button>
+              <Button
+                className="font-medium!"
+                onClick={handleUpdate}
+                disabled={isAddingProgram}
+              >
+                {isAddingProgram ? (
+                  <Loader className="animate-spin mr-2" />
+                ) : (
+                  <SaveIcon className="mr-2" />
+                )}
+                {isAddingProgram ? "Đang xử lí..." : "Thêm mới"}
+              </Button>
+            </div>
           )}
         </CardTitle>
         <CardDescription>
