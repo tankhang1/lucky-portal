@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -65,9 +65,9 @@ export default function InfoSection({
     setFormData(activeProgram);
   }, [activeProgram]);
 
-  const updateField = (key: string, value: any) => {
+  const updateField = useCallback((key: string, value: any) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
   const voiceInputRef = useRef<HTMLInputElement | null>(null);
@@ -329,7 +329,7 @@ export default function InfoSection({
                   </div>
                   <Input
                     disabled={activeProgram?.id !== -1}
-                    value={formData.code || ""}
+                    defaultValue={formData.code || ""}
                     onChange={(e) => updateField("code", e.target.value)}
                     placeholder="Mã chương trình"
                     className="max-w-40 uppercase font-medium"
@@ -340,7 +340,7 @@ export default function InfoSection({
                     Tên chương trình
                   </div>
                   <Input
-                    value={formData.name}
+                    defaultValue={formData.name}
                     onChange={(e) => updateField("name", e.target.value)}
                     className="flex-1"
                     placeholder="Tên chương trình"
@@ -352,20 +352,20 @@ export default function InfoSection({
                   </div>
 
                   <Badge
-                    onClick={() =>
-                      updateField(
-                        "status",
-                        formData.status === -1
-                          ? 0
-                          : formData.status === 0
-                          ? 1
-                          : formData.status === 1
-                          ? 2
-                          : formData.status === 2
-                          ? 3
-                          : -1
-                      )
-                    }
+                    // onClick={() =>
+                    //   updateField(
+                    //     "status",
+                    //     formData.status === -1
+                    //       ? 0
+                    //       : formData.status === 0
+                    //       ? 1
+                    //       : formData.status === 1
+                    //       ? 2
+                    //       : formData.status === 2
+                    //       ? 3
+                    //       : -1
+                    //   )
+                    // }
                     variant={"outline"}
                     className={cn(
                       "px-2.5 py-0.5 text-xs font-medium transition-colors cursor-pointer", // Base styles

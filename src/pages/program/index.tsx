@@ -103,6 +103,11 @@ export default function ProgramPage() {
   );
 
   const addProgram = () => {
+    const isDraftAdd = listProgram.findIndex((item) => item.id === -1) > -1;
+    if (isDraftAdd) {
+      alert("Vui lòng hoàn thành việc tạo chương trình trước khi tạo mới!");
+      return;
+    }
     const now = new Date();
     setStep(0);
     setListProgram((prev) => [
