@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, memo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,7 +42,7 @@ import {
   useUploadThumbnail,
 } from "@/react-query/queries/media/media";
 import { statusConfig } from "..";
-
+const MemoJodit = memo(JoditEditor);
 export default function InfoSection({
   activeProgram,
 }: {
@@ -329,7 +329,7 @@ export default function InfoSection({
                   </div>
                   <Input
                     disabled={activeProgram?.id !== -1}
-                    defaultValue={formData.code || ""}
+                    value={formData.code || ""}
                     onChange={(e) => updateField("code", e.target.value)}
                     placeholder="Mã chương trình"
                     className="max-w-40 uppercase font-medium"
@@ -340,7 +340,7 @@ export default function InfoSection({
                     Tên chương trình
                   </div>
                   <Input
-                    defaultValue={formData.name}
+                    value={formData.name}
                     onChange={(e) => updateField("name", e.target.value)}
                     className="flex-1"
                     placeholder="Tên chương trình"
@@ -747,7 +747,7 @@ export default function InfoSection({
         <div className="space-y-2">
           <div className="text-sm font-medium">Mô tả ngắn</div>
           <div>
-            <JoditEditor
+            <MemoJodit
               value={formData.description_short}
               config={{
                 askBeforePasteHTML: false,
@@ -773,7 +773,7 @@ export default function InfoSection({
             Mô tả chi tiết và quy tắc tham gia
           </div>
           <div>
-            <JoditEditor
+            <MemoJodit
               value={formData.description}
               config={{
                 askBeforePasteHTML: false,
