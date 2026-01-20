@@ -123,7 +123,7 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
                 queryKey: [QUERY_KEY.PROGRAM.EXTRA_NUMBER_LIST],
               });
             },
-          }
+          },
         );
       }
     } else {
@@ -135,7 +135,7 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
   const handleChange = (
     index: number,
     field: keyof TExtraItem,
-    value: string | number
+    value: string | number,
   ) => {
     setExtraList((prev) => {
       const newList = [...prev];
@@ -177,7 +177,12 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
   return (
     <div className="space-y-6 px-4">
       <div className="flex items-center justify-between">
-        <div className="font-medium">Thiết lập giải extra</div>
+        <div>
+          <p className="font-medium">Thiết lập giải extra</p>
+          <p className="text-red-500 whitespace-pre-line font-medium">
+            {`LƯU Ý: CHỈ NHẬP KHI CHƯƠNG TRÌNH QUAY SỐ CẶP VÀ CÓ SỐ LẺ.\nNẾU KHÔNG CÓ SỔ LẺ THÌ KHÔNG NHẬP THÔNG TIN`}
+          </p>
+        </div>
         <Button
           onClick={handleSave}
           disabled={isUpdateNumberExtra}
@@ -193,7 +198,7 @@ const LuckyExtra = ({ activeProgram }: TLuckyExtra) => {
       </div>
 
       <Card className="border-muted/60">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-0">
           <CardTitle className="text-base">Số lẻ may mắn</CardTitle>
           <CardDescription>
             Thêm số ngoài dãy A→B, thiết lập lặp & giải thưởng
