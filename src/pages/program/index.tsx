@@ -71,12 +71,12 @@ export const statusConfig: Record<
     icon: <FileText className="w-3 h-3 mr-1" />,
   },
   "2": {
-    label: "Đã huỷ",
+    label: "Hết hạn",
     className: "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100",
     icon: <Ban className="w-3 h-3 mr-1" />,
   },
   "3": {
-    label: "Hết hạn",
+    label: "Đã huỷ",
     className: "border-gray-200 bg-gray-100 text-gray-500",
     icon: <AlertCircle className="w-3 h-3 mr-1" />,
   },
@@ -99,7 +99,7 @@ export default function ProgramPage() {
 
   const activeProgram = useMemo(
     () => listProgram?.find((p) => p.id === activeId)!,
-    [listProgram, activeId]
+    [listProgram, activeId],
   );
 
   const addProgram = () => {
@@ -166,7 +166,7 @@ export default function ProgramPage() {
               queryKey: [QUERY_KEY.PROGRAM.LIST],
             });
           },
-        }
+        },
       );
     }
   };
@@ -189,7 +189,7 @@ export default function ProgramPage() {
               queryKey: [QUERY_KEY.PROGRAM.LIST],
             });
           },
-        }
+        },
       );
     }
   };
@@ -205,7 +205,7 @@ export default function ProgramPage() {
     let list = listProgram?.filter((p) => p.name.toLowerCase().includes(q));
     if (statusFilter !== "all") {
       list = list?.filter((p) =>
-        statusFilter === "enabled" ? p.status : !p.status
+        statusFilter === "enabled" ? p.status : !p.status,
       );
     }
     return list;
@@ -235,7 +235,7 @@ export default function ProgramPage() {
               alert("Đã hết phiên đăng nhập, vui lòng đăng nhập lại");
             }
           },
-        }
+        },
       );
     } else {
       localStorage.clear();
@@ -346,7 +346,7 @@ export default function ProgramPage() {
                             variant={"outline"}
                             className={cn(
                               "px-2.5 py-0.5 text-xs font-medium transition-colors", // Base styles
-                              statusConfig[p.status].className
+                              statusConfig[p.status].className,
                             )}
                           >
                             {statusConfig[p.status].icon}
