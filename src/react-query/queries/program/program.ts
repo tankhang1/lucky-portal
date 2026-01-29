@@ -11,6 +11,7 @@ import {
   getListExtraNumber,
   getProgramDetailNumber,
   getProgramLuckyHistory,
+  getProgramNumberGet,
   removeExtraNumber,
   saveDraftProgramInfo,
   searchCustomer,
@@ -33,6 +34,8 @@ import {
   type TGetExtraNumberRes,
   type TGetProgramDetailNumberReq,
   type TGetProgramDetailNumberRes,
+  type TGetProgramNumberGetReq,
+  type TGetProgramNumberGetRes,
   type TProgramLuckyHistoryReq,
   type TProgramLuckyHistoryRes,
   type TProgramPrizeReq,
@@ -80,7 +83,7 @@ export const useSearchCustomer = (params: TSearchProgramCustomerReq) => {
 };
 
 export const useGetProgramNumberDetail = (
-  params: TGetProgramDetailNumberReq
+  params: TGetProgramDetailNumberReq,
 ) => {
   return useQuery<TGetProgramDetailNumberRes, AxiosError<null>>({
     queryKey: [QUERY_KEY.PROGRAM.CUSTOMER_LUCKY_LIST, params],
@@ -204,5 +207,15 @@ export const useGetConsumerJoinCampaign = () => {
     TGetConsumerJoinCampaignReq
   >({
     mutationFn: getConsumerJoinCampaign,
+  });
+};
+
+export const useGetProgramNumberGet = () => {
+  return useMutation<
+    TGetProgramNumberGetRes,
+    AxiosError<null>,
+    TGetProgramNumberGetReq
+  >({
+    mutationFn: getProgramNumberGet,
   });
 };

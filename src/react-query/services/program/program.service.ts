@@ -36,7 +36,7 @@ export type TSearchProgramReq = {
 };
 
 export const searchProgram = async (
-  params: TSearchProgramReq
+  params: TSearchProgramReq,
 ): Promise<TSearchProgramRes> => {
   const { data } = await api.get(PATH.PROGRAM.SEARCH, {
     params,
@@ -67,7 +67,7 @@ export type TSearchProgramGiftReq = {
 };
 export type TSearchProgramGiftRes = TProgramGift[];
 export const searchGift = async (
-  params: TSearchProgramGiftReq
+  params: TSearchProgramGiftReq,
 ): Promise<TSearchProgramGiftRes> => {
   const { data } = await api.get(PATH.PROGRAM.GIFT, {
     params,
@@ -91,7 +91,7 @@ export type TSearchProgramCustomerReq = {
 };
 export type TSearchProgramCustomerRes = TProgramCustomer[];
 export const searchCustomer = async (
-  params: TSearchProgramCustomerReq
+  params: TSearchProgramCustomerReq,
 ): Promise<TSearchProgramCustomerRes> => {
   const { data } = await api.get(PATH.PROGRAM.CUSTOMER, {
     params,
@@ -113,7 +113,7 @@ export type TGetProgramDetailNumberReq = {
   c: string;
 };
 export const getProgramDetailNumber = async (
-  params: TGetProgramDetailNumberReq
+  params: TGetProgramDetailNumberReq,
 ): Promise<TGetProgramDetailNumberRes> => {
   const { data } = await api.get(PATH.PROGRAM.CUSTOMER_LUCKY_HISTORY, {
     params,
@@ -139,7 +139,7 @@ export type TProgramLuckyHistoryReq = {
 };
 export type TProgramLuckyHistoryRes = TProgramLuckyHistory[];
 export const getProgramLuckyHistory = async (
-  params: TProgramLuckyHistoryReq
+  params: TProgramLuckyHistoryReq,
 ): Promise<TProgramLuckyHistoryRes> => {
   const { data } = await api.get(PATH.PROGRAM.LUCKY_HISTORY, {
     params,
@@ -166,7 +166,7 @@ export type TUpdateProgramInfoRes = {
 };
 
 export const updateProgramInfo = async (
-  body: TUpdateProgramInfoReq
+  body: TUpdateProgramInfoReq,
 ): Promise<TUpdateProgramInfoRes> => {
   const { data } = await api.post(PATH.PROGRAM.UPDATE_INFO, body);
   return data;
@@ -192,13 +192,13 @@ export type TAddProgramInfoRes = {
   message: string;
 };
 export const addProgramInfo = async (
-  body: TAddProgramInfoReq
+  body: TAddProgramInfoReq,
 ): Promise<TAddProgramInfoRes> => {
   const { data } = await api.post(PATH.PROGRAM.ADD_INFO, body);
   return data;
 };
 export const saveDraftProgramInfo = async (
-  body: TAddProgramInfoReq
+  body: TAddProgramInfoReq,
 ): Promise<TAddProgramInfoRes> => {
   const { data } = await api.post(PATH.PROGRAM.SAVE_DRAFT_INFO, body);
   return data;
@@ -212,7 +212,7 @@ export type TDeleteProgramInfoRes = {
   message: string;
 };
 export const deleteProgramInfo = async (
-  body: TDeleteProgramInfoReq
+  body: TDeleteProgramInfoReq,
 ): Promise<TDeleteProgramInfoRes> => {
   const { data } = await api.post(PATH.PROGRAM.DELETE_INFO, body);
   return data;
@@ -220,7 +220,7 @@ export const deleteProgramInfo = async (
 export type TActiveProgramInfoReq = TDeleteProgramInfoReq;
 export type TActiveProgramInfoRes = TDeleteProgramInfoRes;
 export const activeProgramInfo = async (
-  body: TActiveProgramInfoReq
+  body: TActiveProgramInfoReq,
 ): Promise<TActiveProgramInfoRes> => {
   const { data } = await api.post(PATH.PROGRAM.ACTIVE_INFO_STATUS, body);
   return data;
@@ -234,7 +234,7 @@ export type TUpdateExtraNumberRes = {
   message: string;
 };
 export const updateExtraNumber = async (
-  body: TUpdateExtraNumberReq
+  body: TUpdateExtraNumberReq,
 ): Promise<TUpdateExtraNumberRes> => {
   const { data } = await api.post(PATH.PROGRAM.UPDATE_NUMBER_EXTRA, body);
   return data;
@@ -244,7 +244,7 @@ export type TRemoveNumberExtraReq = {
   number_extra: number;
 };
 export const removeExtraNumber = async (
-  body: TRemoveNumberExtraReq
+  body: TRemoveNumberExtraReq,
 ): Promise<TUpdateExtraNumberRes> => {
   const { data } = await api.post(PATH.PROGRAM.REMOVE_NUMBER_EXTRA, body);
   return data;
@@ -270,21 +270,21 @@ export type TProgramPrizeRes = {
   message: string;
 };
 export const updateProgramPrize = async (
-  body: TProgramPrizeReq
+  body: TProgramPrizeReq,
 ): Promise<TProgramPrizeRes> => {
   const { data } = await api.post(PATH.PROGRAM.UPDATE_PRIZE, body);
   return data;
 };
 
 export const addProgramPrize = async (
-  body: TProgramPrizeReq
+  body: TProgramPrizeReq,
 ): Promise<TProgramPrizeRes> => {
   const { data } = await api.post(PATH.PROGRAM.ADD_PRIZE, body);
   return data;
 };
 
 export const deactiveProgramPrize = async (
-  body: TProgramPrizeReq
+  body: TProgramPrizeReq,
 ): Promise<TProgramPrizeRes> => {
   const { data } = await api.post(PATH.PROGRAM.DELETE_PRIZE, body);
   return data;
@@ -303,7 +303,7 @@ export type TAddCustomerRes = {
   message: string;
 };
 export const addCustomer = async (
-  body: TAddCustomerReq
+  body: TAddCustomerReq,
 ): Promise<TAddCustomerRes> => {
   const { data } = await api.post(PATH.PROGRAM.ADD_CUSTOMER, body);
   return data;
@@ -317,7 +317,7 @@ export type TDeleteCustomerRes = {
   message: string;
 };
 export const deleteCustomer = async (
-  body: TDeleteCustomerReq
+  body: TDeleteCustomerReq,
 ): Promise<TDeleteCustomerRes> => {
   const { data } = await api.post(PATH.PROGRAM.DELETE_CUSTOMER, body);
   return data;
@@ -335,7 +335,7 @@ export type TExtraNumber = {
 export type TGetExtraNumberRes = TExtraNumber[];
 
 export const getListExtraNumber = async (
-  params: TGetExtraNumberReq
+  params: TGetExtraNumberReq,
 ): Promise<TGetExtraNumberRes> => {
   const { data } = await api.get(PATH.PROGRAM.LIST_EXTRA_NUMBER, { params });
   return data;
@@ -356,14 +356,34 @@ export type TConsumerJoinCampaign = {
   consumer_phone: string;
   counter_get: number;
   counter_award: number;
+  counter_init: number;
 };
 export type TGetConsumerJoinCampaignRes = TConsumerJoinCampaign[];
 export type TGetConsumerJoinCampaignReq = {
   c: string;
 };
 export const getConsumerJoinCampaign = async (
-  params: TGetConsumerJoinCampaignReq
+  params: TGetConsumerJoinCampaignReq,
 ): Promise<TGetConsumerJoinCampaignRes> => {
   const { data } = await api.get(PATH.PROGRAM.CUSOMER_JOIN, { params });
+  return data;
+};
+
+export type TProgramNumberGet = {
+  campaign_name: string;
+  consumer_code: string;
+  consumer_name: string;
+  consumer_phone: string;
+  numb: number;
+  time_get: string;
+};
+export type TGetProgramNumberGetRes = TProgramNumberGet[];
+export type TGetProgramNumberGetReq = {
+  c: string;
+};
+export const getProgramNumberGet = async (
+  params: TGetProgramNumberGetReq,
+): Promise<TGetProgramNumberGetRes> => {
+  const { data } = await api.get(PATH.PROGRAM.NUMBER_GET, { params });
   return data;
 };

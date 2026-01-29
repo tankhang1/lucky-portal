@@ -23,6 +23,7 @@ const PATH = {
     DELETE_CUSTOMER: "/program/remove-consumer",
     LIST_EXTRA_NUMBER: "/collect/number-extra/list",
     CUSOMER_JOIN: "/zalo/campaign/consumer/join",
+    NUMBER_GET: "/collect/campaign/number-get",
   },
   MEDIA: {
     UPLOAD_IMAGE: "/upload-files/image",

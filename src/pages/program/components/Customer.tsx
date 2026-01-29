@@ -14,6 +14,7 @@ import {
   useAddProgramCustomer,
   useDeleteProgramCustomer,
   useGetConsumerJoinCampaign,
+  useGetProgramNumberGet,
   useSearchCustomer,
 } from "@/react-query/queries/program/program";
 import type {
@@ -55,6 +56,8 @@ const CustomerSection = ({ code }: TCustomerSection) => {
     mutate: getConsumerJoinCampaign,
     isPending: isPendingComsumerCampaign,
   } = useGetConsumerJoinCampaign();
+  const { mutate: getProgramNumberGet, isPending: isPendingProgramNumberGet } =
+    useGetProgramNumberGet();
   const onAddCustomer = () => {
     if (!form.consumer_code || !form.consumer_name || !form.consumer_phone) {
       toast.error("Vui lòng nhập đầy đủ thông tin!");
@@ -84,13 +87,13 @@ const CustomerSection = ({ code }: TCustomerSection) => {
               queryKey: [QUERY_KEY.PROGRAM.CUSTOMER_LIST],
             });
           },
-        }
+        },
       );
     }
   };
   const onDeleteCustomer = (phone: string) => {
     const isConfirmed = window.confirm(
-      `Bạn có chắc chắn muốn xoá khách hàng ${phone}`
+      `Bạn có chắc chắn muốn xoá khách hàng ${phone}`,
     );
     if (isConfirmed)
       deleteCustomer(
@@ -111,7 +114,7 @@ const CustomerSection = ({ code }: TCustomerSection) => {
               queryKey: [QUERY_KEY.PROGRAM.CUSTOMER_LIST],
             });
           },
-        }
+        },
       );
   };
   const onExportExcel = async () => {
@@ -126,8 +129,9 @@ const CustomerSection = ({ code }: TCustomerSection) => {
             "Mã KH": item.consumer_code,
             "Tên KH": item.consumer_name,
             "DT KH": item.consumer_phone,
-            "Tổng lượt lấy": item.counter_get,
-            "Tổng lượt trúng thưởng": item.counter_award,
+            "Số lượng lấy": item.counter_get,
+            "Số lượng tối đa": item.counter_init,
+            "Số lượng trúng": item.counter_award,
           }));
 
           const worksheet = XLSX.utils.json_to_sheet(excelData);
@@ -146,15 +150,58 @@ const CustomerSection = ({ code }: TCustomerSection) => {
           XLSX.utils.book_append_sheet(
             workbook,
             worksheet,
-            "Danh sách tham gia"
+            "Danh sách tham gia",
           );
 
-          XLSX.writeFile(workbook, "Danh_sach_khach_hang.xlsx");
+          XLSX.writeFile(workbook, "Danh_sach_tham_gia.xlsx");
         },
         onError: (error) => {
           console.error("Failed to fetch data for export", error);
         },
-      }
+      },
+    );
+  };
+  const onExportNumberGet = async () => {
+    getProgramNumberGet(
+      {
+        c: code,
+      },
+      {
+        onSuccess: (data) => {
+          const excelData = data.map((item) => ({
+            "Tên chương trình": item.campaign_name,
+            "Mã KH": item.consumer_code,
+            "Tên KH": item.consumer_name,
+            "ĐT KH": item.consumer_phone,
+            Số: item.numb,
+            "Thời gian": item.time_get,
+          }));
+
+          const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+          const columnWidths = [
+            { wch: 40 },
+            { wch: 15 },
+            { wch: 25 },
+            { wch: 15 },
+            { wch: 15 },
+            { wch: 20 },
+          ];
+          worksheet["!cols"] = columnWidths;
+
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(
+            workbook,
+            worksheet,
+            "Danh sách chọn số",
+          );
+
+          XLSX.writeFile(workbook, "Danh_sach_chon_so.xlsx");
+        },
+        onError: (error) => {
+          console.error("Failed to fetch data for export", error);
+        },
+      },
     );
   };
   const onSelectAll = (checked: boolean) => {
@@ -175,7 +222,7 @@ const CustomerSection = ({ code }: TCustomerSection) => {
     if (selectedIds.length === 0) return;
 
     const isConfirmed = window.confirm(
-      `Bạn có chắc chắn muốn xoá ${selectedIds.length} khách hàng đã chọn? Hành động này không thể hoàn tác.`
+      `Bạn có chắc chắn muốn xoá ${selectedIds.length} khách hàng đã chọn? Hành động này không thể hoàn tác.`,
     );
 
     if (isConfirmed && customers) {
@@ -197,7 +244,7 @@ const CustomerSection = ({ code }: TCustomerSection) => {
             onError: (error) => {
               console.error(`Lỗi khi xoá ${phone}`, error);
             },
-          }
+          },
         );
       });
 
@@ -289,6 +336,18 @@ const CustomerSection = ({ code }: TCustomerSection) => {
             )}
             Xuất Excel
           </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={onExportNumberGet}
+          >
+            {isPendingProgramNumberGet ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Xuất DS chọn số
+          </Button>
         </div>
         {/* Bảng với drag handle + history dialog */}
 
@@ -314,7 +373,10 @@ const CustomerSection = ({ code }: TCustomerSection) => {
                 <TableHead className="min-w-[160px]">Số điện thoại</TableHead>
                 <TableHead className="min-w-[140px]">Mã KH</TableHead>
                 <TableHead className="w-[120px] text-right">
-                  Số lượt quay
+                  Số lượt đã chọn
+                </TableHead>
+                <TableHead className="w-[120px] text-right">
+                  Số lượt tham gia
                 </TableHead>
                 <TableHead className="w-[130px] text-right">
                   Hành động
@@ -352,7 +414,10 @@ const CustomerSection = ({ code }: TCustomerSection) => {
 
                   {/* Code: Changed from Input to text */}
                   <TableCell className="px-3 py-2">{c.consumer_code}</TableCell>
-
+                  {/* Number Counter: Changed from Input to text */}
+                  <TableCell className="px-3 py-2 text-right">
+                    {c.number_counter}
+                  </TableCell>
                   {/* Number Get: Changed from Input to text */}
                   <TableCell className="px-3 py-2 text-right">
                     {c.number_get}
