@@ -276,6 +276,9 @@ export default function InfoSection({
     if (isConfirmed) saveDraftProgram(payload, mutationOptions);
   };
   const status = statusConfig[formData.status] ?? statusConfig[-1];
+
+  if (!formData) return null;
+
   return (
     <div className="space-y-3">
       <CardHeader>
@@ -759,6 +762,7 @@ export default function InfoSection({
                 placeholder: "Giới thiệu ngắn gọn về chương trình...",
                 beautifyHTML: true,
                 defaultMode: 1,
+                iframe: true,
                 buttons:
                   "bold,italic,underline,ul,ol,font,brush,paragraph,left,right,center,justify,undo,redo",
               }}
@@ -785,6 +789,7 @@ export default function InfoSection({
                 placeholder: "Giới thiệu về chương trình...",
                 beautifyHTML: true,
                 defaultMode: 1,
+                iframe: true,
                 buttons:
                   "bold,italic,underline,ul,ol,font,brush,paragraph,left,right,center,justify,undo,redo",
               }}
