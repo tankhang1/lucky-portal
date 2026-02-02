@@ -62,7 +62,14 @@ export default function InfoSection({
   const [formData, setFormData] = useState<TProgram>(activeProgram);
 
   useEffect(() => {
-    setFormData(activeProgram);
+    if (!activeProgram) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      ...activeProgram,
+      description: activeProgram.description || "",
+      description_short: activeProgram.description_short || "",
+    }));
   }, [activeProgram]);
 
   const updateField = useCallback((key: string, value: any) => {
@@ -743,7 +750,7 @@ export default function InfoSection({
           <div className="text-sm font-medium">Mô tả ngắn</div>
           <div>
             <MemoJodit
-              value={formData.description_short}
+              value={formData?.description_short || ""}
               config={{
                 askBeforePasteHTML: false,
                 askBeforePasteFromWord: false,
@@ -769,7 +776,7 @@ export default function InfoSection({
           </div>
           <div>
             <MemoJodit
-              value={formData.description}
+              value={formData?.description || ""}
               config={{
                 askBeforePasteHTML: false,
                 askBeforePasteFromWord: false,
