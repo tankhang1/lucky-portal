@@ -101,10 +101,10 @@ export default function InfoSection({
           console.log("pdf link", message);
           updateField(
             "pdf_link",
-            `${import.meta.env.VITE_API_URL}/pdf/${formData.code}.pdf`
+            `${import.meta.env.VITE_API_URL}/pdf/${formData.code}.pdf`,
           );
         },
-      }
+      },
     );
   };
 
@@ -132,10 +132,10 @@ export default function InfoSection({
           console.log("audio_link", message);
           updateField(
             "audio_link",
-            `${import.meta.env.VITE_API_URL}/audio/${formData.code}.mp3`
+            `${import.meta.env.VITE_API_URL}/audio/${formData.code}.mp3`,
           );
         },
-      }
+      },
     );
   };
   const handleUploadImage = async (f: File) => {
@@ -153,10 +153,10 @@ export default function InfoSection({
           console.log("image_banner", message);
           updateField(
             "image_banner",
-            `${import.meta.env.VITE_API_URL}/image/${formData.code}.jpg`
+            `${import.meta.env.VITE_API_URL}/image/${formData.code}.jpg`,
           );
         },
-      }
+      },
     );
   };
   const handleUploadThumbnail = async (f: File) => {
@@ -174,10 +174,10 @@ export default function InfoSection({
           console.log("image_thumbnail", message);
           updateField(
             "image_thumbnail",
-            `${import.meta.env.VITE_API_URL}/image/${formData.code}_thumb.jpg`
+            `${import.meta.env.VITE_API_URL}/image/${formData.code}_thumb.jpg`,
           );
         },
-      }
+      },
     );
   };
 
@@ -219,12 +219,12 @@ export default function InfoSection({
 
     if (activeProgram?.id !== -1) {
       const isConfirmed = window.confirm(
-        "Bạn có chắc chắn muốn lưu các thay đổi cho chương trình này không?"
+        "Bạn có chắc chắn muốn lưu các thay đổi cho chương trình này không?",
       );
       if (isConfirmed) updateProgram(payload, mutationOptions);
     } else {
       const isConfirmed = window.confirm(
-        "Bạn có chắc chắn muốn tạo mới chương trình này không?"
+        "Bạn có chắc chắn muốn tạo mới chương trình này không?",
       );
       if (isConfirmed) addProgram(payload, mutationOptions);
     }
@@ -264,10 +264,11 @@ export default function InfoSection({
       },
     };
     const isConfirmed = window.confirm(
-      "Bạn có chắc chắn muốn lưu nháp chương trình này không?"
+      "Bạn có chắc chắn muốn lưu nháp chương trình này không?",
     );
     if (isConfirmed) saveDraftProgram(payload, mutationOptions);
   };
+  const status = statusConfig[formData.status] ?? statusConfig[-1];
   return (
     <div className="space-y-3">
       <CardHeader>
@@ -352,28 +353,14 @@ export default function InfoSection({
                   </div>
 
                   <Badge
-                    // onClick={() =>
-                    //   updateField(
-                    //     "status",
-                    //     formData.status === -1
-                    //       ? 0
-                    //       : formData.status === 0
-                    //       ? 1
-                    //       : formData.status === 1
-                    //       ? 2
-                    //       : formData.status === 2
-                    //       ? 3
-                    //       : -1
-                    //   )
-                    // }
-                    variant={"outline"}
+                    variant="outline"
                     className={cn(
-                      "px-2.5 py-0.5 text-xs font-medium transition-colors cursor-pointer", // Base styles
-                      statusConfig[formData.status].className
+                      "px-2.5 py-0.5 text-xs font-medium",
+                      status.className,
                     )}
                   >
-                    {statusConfig[formData.status].icon}
-                    {statusConfig[formData.status].label}
+                    {status.icon}
+                    {status.label}
                   </Badge>
                 </div>
               </div>
@@ -428,7 +415,11 @@ export default function InfoSection({
                 <div className="text-xs text-muted-foreground">Bắt đầu</div>
                 <Input
                   type="date"
-                  value={dayjs(formData.time_start || "").format("YYYY-MM-DD")}
+                  value={
+                    formData?.time_start
+                      ? dayjs(formData.time_start).format("YYYY-MM-DD")
+                      : ""
+                  }
                   onChange={(e) => updateField("time_start", e.target.value)}
                   className="!text-xs"
                 />
@@ -437,7 +428,11 @@ export default function InfoSection({
                 <div className="text-xs text-muted-foreground">Kết thúc</div>
                 <Input
                   type="date"
-                  value={dayjs(formData.time_end || "").format("YYYY-MM-DD")}
+                  value={
+                    formData?.time_end
+                      ? dayjs(formData.time_end).format("YYYY-MM-DD")
+                      : ""
+                  }
                   onChange={(e) => updateField("time_end", e.target.value)}
                   min={formData.time_start}
                   className="!text-xs"
@@ -621,7 +616,7 @@ export default function InfoSection({
                     "group flex items-start gap-3 rounded-lg border p-3 text-left transition",
                     checked
                       ? "border-primary ring-2 ring-primary/20 bg-primary/5"
-                      : "hover:bg-muted/40"
+                      : "hover:bg-muted/40",
                   )}
                 >
                   <div
@@ -629,7 +624,7 @@ export default function InfoSection({
                       "grid h-5 w-5 place-items-center rounded-full border transition",
                       checked
                         ? "bg-primary text-primary-foreground border-primary"
-                        : "border-muted-foreground/30 text-muted-foreground"
+                        : "border-muted-foreground/30 text-muted-foreground",
                     )}
                   >
                     {/* Render checkmark if checked, otherwise empty circle */}
@@ -639,7 +634,7 @@ export default function InfoSection({
                     <div
                       className={cn(
                         "text-sm",
-                        checked ? "font-medium" : "text-foreground"
+                        checked ? "font-medium" : "text-foreground",
                       )}
                     >
                       {opt.label}
@@ -728,7 +723,7 @@ export default function InfoSection({
                     0,
                     (Number(formData.number_end) || 0) -
                       (Number(formData.number_start) || 0) +
-                      1
+                      1,
                   ) * Math.max(1, Number(formData.number_loop) || 1)}
                 </Badge>
                 {(Number(formData.number_start) || 0) >
